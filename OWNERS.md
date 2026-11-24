@@ -6,6 +6,7 @@ Satu owner per path. Reviewer tidak boleh mengedit file owner.
 ```
 apps/api/database/migrations/**        tg-data
 apps/api/database/seeders/packs/**     tg-domain
+apps/api/database/**  (sisa setelah migrations/** dan seeders/packs/**)  tg-data
 apps/api/app/Domain/**                 tg-backend
 apps/api/app/Integrations/**           tg-integrations
 apps/api/routes/**                     tg-backend
@@ -23,7 +24,7 @@ docs/qa/** tests/e2e/** tests/load/**  tg-qa
 docs/security/** tests/security/**     tg-security
 .github/** infra/** docker/**          tg-devops
 docs/api/** docs/runbooks/** docs/guides/**  tg-docs
-docs/board/**                          orchestrator
+docs/board/**  (kecuali audit/**)                     orchestrator
 docs/board/audit/**                    tg-auditor
 ```
 
@@ -36,6 +37,8 @@ apps/api/config/**  apps/api/bootstrap/**  apps/api/*.json  apps/api/*.xml     t
 apps/web/**            (sisa setelah (public)/** dan (console)/**)             tg-web
 docker-compose*.yml, Makefile, *.mk, .env.example, .env.testing, .gitignore     tg-devops
 README.md                                                                       tg-devops
+package.json, pnpm-workspace.yaml, pnpm-lock.yaml, tsconfig*.json (root)        tg-devops
+PROMPT.md (dihapus saat bootstrap → docs/prd/PRD.md)                            orchestrator
 .omp/**  AGENTS.md  OWNERS.md                                                  orchestrator
 ```
 Alasan: §16.4 hanya memetakan path produk; file build/runtime dasar perlu owner eksplisit agar auditor

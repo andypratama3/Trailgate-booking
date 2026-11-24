@@ -1,0 +1,29 @@
+id: T-010
+title: Setup Tailwind v4 CSS-first + pipeline token (design-tokens -> CSS vars -> @theme) + budget CSS di CI
+fr: [FR-39]
+epic: P0
+phase: P0
+owner: tg-ux
+co_owner: tg-devops
+reviewers: [tg-web, tg-reviewer]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-001]
+status: todo
+rework_round: 0
+branch: agent/tg-ux/T-010
+acceptance:
+  - "Tailwind v4 dipasang dengan konfigurasi CSS-first (`@import \"tailwindcss\"` + `@theme`); versi ter-pin"
+  - "packages/design-tokens adalah sumber tunggal token; skrip build menghasilkan CSS variables"
+  - "CSS variables dipetakan ke `@theme` sehingga utilitas Tailwind memakai token"
+  - "Tidak ada warna/ukuran hardcode di contoh komponen yang disertakan"
+  - "CI memeriksa budget ukuran CSS hasil build dan gagal bila melewati batas yang ditetapkan (batas tercatat di ADR/README)"
+  - "Token terang dan gelap keduanya dihasilkan dari sumber yang sama"
+artifacts_expected:
+  - packages/design-tokens/** (sumber token + skrip build)
+  - apps/web config Tailwind v4 + globals.css
+  - .github/workflows job budget CSS (atau penugasan ke T-008)
+  - docs/ux/token-pipeline.md
+notes: >
+  Path `apps/web/**` (sisa) dimiliki tg-web, `packages/design-tokens/**` tg-ux, `.github/**` tg-devops.
+  Co-owner: tg-ux memutuskan token; tg-devops memasang langkah CI. Koordinasikan lewat task card ini.

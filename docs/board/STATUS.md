@@ -17,9 +17,9 @@
 |---|---|---|
 | `php`/`composer`/`node`/`pnpm`/`docker` tersedia | PHP 8.3.6, Node 22.23.5, pnpm 10.33.2, Docker 29.10.0 | Laravel 12 (butuh PHP ≥ 8.2) dan Next.js bisa di-scaffold lokal |
 | Jaringan ke Packagist/npmjs | HTTP 200 | pin versi nyata saat scaffold, bukan menebak |
-| `.omp/agents/*.md` terdaftar sebagai seat `task` | **ya** (agent proyek muncul di roster; terbukti `tg-test` bisa di-spawn dari sesi berjalan) | roster §16.3 dieksekusi sungguhan, bukan dokumentasi |
+| `.omp/agents/*.md` terdaftar sebagai seat `task` | **ya** — `omp -p --no-session 'List the agent type names your task tool offers...'` mengembalikan roster; setelah `.omp/agents/tg-test.md` dibuat, `tg-test` muncul di daftar dan berhasil di-spawn dari sesi berjalan (agent `RosterProbe` mengembalikan `pong`). `tg-test` kemudian **dihapus** — tidak termasuk roster permanen. | roster §16.3 dieksekusi sungguhan, bukan dokumentasi |
 | `model: slow|smol|default` di frontmatter | diterima tanpa error (mapping tepat **belum** dikonfirmasi; `config.yml` hanya memetakan `default`) | role dipakai apa adanya; biaya mungkin jatuh ke `default` |
-| Isolasi filesystem subagent | **tidak terisolasi** — subagent menulis ke working tree yang sama | fan-out **hanya** untuk path berbeda; commit dari sesi utama |
+| Isolasi filesystem subagent | **tidak terisolasi** — uji: agent `sonic` (job `FsProbe`) diminta menulis `docs/board/_fsprobe.txt`; file muncul di working tree utama, `find / -name _fsprobe.txt` menghasilkan satu lokasi, dan `git worktree list` hanya menampilkan `master`. **Catatan:** ini bertentangan dengan teks PRD §16.1/§16.15 yang menyebut "worktree terisolasi"; perbedaan ini direkonsiliasi keputusan O-4 dan perlu diamandemen `tg-analyst`/ADR. | fan-out **hanya** untuk path berbeda; commit dari sesi utama |
 | `lsp`/`ast_edit` di subagent | **belum diaktifkan** (`config.yml` belum punya `task.enableLsp`/`astGrep.enabled`) | tool itu tidak dimasukkan ke roster; lihat "Perlu keputusan" |
 
 ## Rencana gelombang P0 (path berbeda → boleh paralel)
@@ -54,6 +54,7 @@ dependensi, bukan larangan paralel.
 | # | Keputusan | Alasan |
 |---|---|---|
 | O-1 | PRD dipindahkan `PROMPT.md` → `docs/prd/PRD.md` | Lampiran B langkah 2 |
-| O-2 | `OWNERS.md` menambah path infra (`apps/api/**` non-domain, `docker-compose*`, `Makefile`, dotfiles) ke `tg-devops`; `AGENTS.md`/`OWNERS.md`/`README.md` ke `orchestrator` | §16.4 hanya memetakan path produk; tanpa ini auditor menandai commit tak berpemilik |
+| O-2 | `OWNERS.md` menambah path infra (`apps/api/**` non-domain, `docker-compose*`, `Makefile`, dotfiles, `.github/**`, `README.md`) ke `tg-devops`; `AGENTS.md`/`OWNERS.md`/`.omp/**` ke `orchestrator` | §16.4 hanya memetakan path produk; tanpa ini auditor menandai commit tak berpemilik. Reviewer tg-architect F-3: README harus SATU owner → `tg-devops` (sesuai T-001 deliverables) |
 | O-3 | Toolset roster **tidak** memuat `lsp`/`ast_edit` | belum aktif di config pengguna; menghindari seat gagal spawn. Diaktifkan setelah persetujuan #9 |
 | O-4 | Subagent berbagi working tree → Orchestrator hanya memparalelkan tugas dengan path berbeda, dan melakukan commit | hasil uji isolasi filesystem di atas |
+| O-5 | Semua seat yang menulis `model: slow`/`smol` **berjalan pada model `default`** sampai terbukti sebaliknya — mapping role→model belum diverifikasi dan `task.agentModelOverrides` belum diisi (#9) | reviewer tg-architect F-6: jangan menganggap cost-routing §16.13 sudah berlaku |

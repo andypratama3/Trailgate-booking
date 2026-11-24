@@ -1,0 +1,30 @@
+id: T-006
+title: OpenAPI v1 skeleton + generator tipe TS + tes kontrak
+fr: [all]
+epic: P0
+phase: P0
+owner: tg-architect
+co_owner: null
+reviewers: [tg-backend, tg-web]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-005]
+status: todo
+rework_round: 0
+branch: agent/tg-architect/T-006
+acceptance:
+  - "OpenAPI 3.1 di packages/contracts/openapi.yaml adalah sumber kebenaran"
+  - "Mencakup endpoint PRD §11: publik (routes, routes/{slug}, availability, status), booking (hold, members/{id}, pay, reschedule, cancel), dokumen, webhook, konsol, pos (sync, manifest, revocations), admin"
+  - "Skema error standar {code, message, details}; pagination konsisten; versi di URL (/v1)"
+  - "Skema uang = integer rupiah; tanggal/timestamp berformat eksplisit; Idempotency-Key terdokumentasi"
+  - "Generator tipe TS dijalankan dan output deterministik (dapat di-regenerate) dalam pnpm script"
+  - "Tes kontrak: request/response contoh untuk endpoint inti tervalidasi terhadap openapi.yaml; CI menjalankannya"
+  - "Setiap endpoint mencantumkan autentikasi + scope RBAC yang diperlukan"
+artifacts_expected:
+  - packages/contracts/openapi.yaml
+  - packages/contracts/src/generated/*.ts
+  - packages/contracts/package.json (script generate + test)
+  - tes kontrak
+notes: >
+  Kontrak = sumber kebenaran; perubahan kontrak hanya oleh tg-architect via ADR.
+  tg-backend dan tg-web adalah konsumen: mereka TIDAK mengubah kontrak, hanya mengonsumsi tipe ter-generate.

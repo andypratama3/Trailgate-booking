@@ -1,0 +1,26 @@
+id: T-012
+title: Tema tenant runtime + validator kontras WCAG AA + mode gelap
+fr: [FR-39, FR-02]
+epic: P0
+phase: P0
+owner: tg-web
+co_owner: null
+reviewers: [tg-ux, tg-security]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-011]
+status: todo
+rework_round: 0
+branch: agent/tg-web/T-012
+acceptance:
+  - "Warna merek tenant di-inject sebagai CSS variables saat runtime (tanpa rebuild)"
+  - "Validator kontras WCAG AA otomatis: pasangan warna yang gagal DITOLAK atau disesuaikan, bukan dibiarkan"
+  - "Mode gelap bekerja penuh di samping mode terang"
+  - "Nilai warna tenant tidak bisa menyuntikkan CSS/JS (validasi format warna)"
+  - "TES: warna yang lolos AA diterima; warna gagal AA ditolak; injeksi non-warna ditolak"
+artifacts_expected:
+  - mekanisme injeksi tema (apps/web)
+  - validator kontras + tes
+  - dokumentasi singkat untuk tenant (batas warna yang diizinkan)
+notes: >
+  Reviewer R2 = tg-security: fokus injeksi tema tidak boleh jadi vektor XSS/CSS injection.

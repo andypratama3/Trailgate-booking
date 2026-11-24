@@ -4,7 +4,7 @@ fr: []
 epic: P0
 phase: P0
 owner: tg-devops
-co_owner: null
+co_owner: [tg-console, tg-architect, tg-ux, tg-web, tg-backend, tg-data]
 reviewers: [tg-architect, tg-security]
 verifier: tg-qa
 auditor: tg-auditor

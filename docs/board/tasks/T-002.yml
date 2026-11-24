@@ -1,0 +1,45 @@
+id: T-002
+title: Roster agent .omp/agents, papan docs/board, skema yield, konfigurasi model
+fr: []
+epic: P0
+phase: P0
+owner: orchestrator
+co_owner: tg-analyst
+reviewers: [tg-architect, tg-reviewer]
+verifier: tg-auditor
+auditor: tg-auditor
+depends_on: []
+status: in_review
+rework_round: 1
+branch: master
+deviation:
+  prd_dep: T-001
+  actual: executed before T-001
+  reason: >
+    PRD §17 memberi T-002 depends_on T-001. Kenyataannya roster agent adalah PRASYARAT untuk
+    menjalankan T-001: tanpa seat tg-devops, tidak ada yang bisa mengerjakan scaffold.
+    Papan (docs/board) dan skema yield juga dibutuhkan sebelum BuildReport pertama ada.
+    Urutan dibalik secara sadar; dicatat di sini agar auditor tidak menandainya sebagai pelanggaran diam.
+  branch: >
+    PRD §16.5 memakai branch agent/<owner>/<id>. Tugas ini dikerjakan langsung oleh Orchestrator
+    (seat ini adalah sesi utama, bukan subagent), sehingga dikerjakan di master. Jalur merge ke
+    branch integration + CI penuh milik tg-devops dan belum ada di repo awal — inilah alasan
+    pemutusan DoD §18.2 belum berlaku untuk bootstrap; tercatat sebagai deviation, bukan kelalaian.
+  path_scope: >
+    Memindahkan PROMPT.md -> docs/prd/PRD.md (Lampiran B langkah 2) menyentuh docs/prd/** yang
+    dipetakan ke tg-analyst oleh OWNERS.md. Karena itu co_owner di atas = tg-analyst, sehingga
+    perpindahan itu sah menurut §18.1 (commit hanya menyentuh path milik owner atau co-owner).
+acceptance:
+  - "15 agent tg-* di .omp/agents/ sesuai PRD §16.3, terverifikasi terdaftar sebagai seat task"
+  - "AGENTS.md (aturan §16.11) dan OWNERS.md (peta §16.4 + path infra) ada"
+  - "docs/board: BACKLOG.md (status semua tugas), STATUS.md (fakta terverifikasi + gate + keputusan), YIELD.md (skema §16.6)"
+  - "task card untuk tiap tugas P0 ada di docs/board/tasks/"
+  - "Konfigurasi model: role per seat ditulis; keterbatasan mapping dicatat di STATUS.md"
+artifacts_expected:
+  - .omp/agents/*.md (15)
+  - AGENTS.md, OWNERS.md
+  - docs/board/{BACKLOG,STATUS,YIELD}.md
+  - docs/board/tasks/T-00x.yml
+notes: >
+  Dikerjakan langsung oleh Orchestrator (owner = orchestrator, path docs/board/**), bukan subagent.
+  Reviewer/verifier tetap pihak lain (tg-architect, tg-reviewer, tg-auditor) — tidak ada self-approval.

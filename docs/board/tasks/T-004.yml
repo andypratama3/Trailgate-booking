@@ -1,0 +1,30 @@
+id: T-004
+title: Skema Mountain Pack + validator sumber + 4 pack referensi demo
+fr: [FR-37]
+epic: P0
+phase: P0
+owner: tg-domain
+co_owner: null
+reviewers: [tg-analyst, tg-architect]
+verifier: tg-auditor
+auditor: tg-auditor
+depends_on: [T-003]
+status: todo
+rework_round: 0
+branch: agent/tg-domain/T-004
+acceptance:
+  - "Skema Mountain Pack (JSON) terdefinisi: mountain, routes[], gates[], checkpoints[], camp_areas[], quota, requirement_rules[], sources[]"
+  - "Setiap objek aturan WAJIB punya source_url + verified_at; validator menolak (exit != 0) bila hilang"
+  - "Validator menolak verified_at lebih tua dari 90 hari (configurable) dan menolak date yang tidak valid"
+  - "4 pack referensi dibuat: Gede-Pangrango, Rinjani, Semeru, Arjuno-Welirang"
+  - "Setiap pack ditandai `verified: false` / label DEMO karena belum dikonfirmasi tenant (§18.3)"
+  - "Sumber hanya dari PRD §2 + Lampiran A (semua bertanggal 24 Nov 2026); tidak ada aturan tanpa sumber"
+  - "Validator punya tes: pack valid lulus, pack tanpa source_url gagal, pack kedaluwarsa gagal"
+artifacts_expected:
+  - apps/api/database/seeders/packs/schema/mountain-pack.schema.json
+  - apps/api/database/seeders/packs/*.json (4 pack)
+  - validator (skrip/Command) + tes
+  - docs/domain/mountain-pack.md
+notes: >
+  Gunung/pengelola pilot BELUM diputuskan (§20.2 #1). Keempat pack dibuat sebagai referensi DEMO;
+  pack pilot nyata menyusul setelah keputusan Andy. Jangan menaikkan opini/taksiran menjadi `rules`.

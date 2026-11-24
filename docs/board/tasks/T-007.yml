@@ -1,0 +1,29 @@
+id: T-007
+title: Token desain + wireframe alur booking, status jalur, closure desk, POS
+fr: [FR-02, FR-09, FR-15, FR-16]
+epic: P0
+phase: P0
+owner: tg-ux
+co_owner: null
+reviewers: [tg-web, tg-analyst]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-003]
+status: todo
+rework_round: 0
+branch: agent/tg-ux/T-007
+acceptance:
+  - "Token desain (warna, tipografi, spasi, radius, bayangan, motion) terdefinisi sebagai sumber tunggal, terang + gelap"
+  - "Token dipetakan ke CSS variables; tidak ada warna/ukuran hardcode di contoh komponen"
+  - "Wireframe (low-fi) untuk: alur booking (cari->hold->isi data->bayar->tiket), halaman status jalur, Closure Desk, POS check-in/out"
+  - "Setiap wireframe mencantumkan state: loading, empty, error, dan (bila ada) offline"
+  - "Validator kontras WCAG AA dispesifikasikan: pasangan warna yang gagal ditolak/disesuaikan"
+  - "Copy Bahasa Indonesia untuk CTA dan label kunci; tidak ada klaim tanpa sumber"
+  - "Catatan aksesibilitas: target WCAG 2.2 AA, dukungan layout ponsel kecil"
+artifacts_expected:
+  - docs/ux/design-tokens.md (+ file token mentah)
+  - docs/ux/wireframes/*.md (booking, status, closure-desk, pos)
+  - docs/ux/accessibility.md
+notes: >
+  T-007 menghasilkan SPESIFIKASI. Implementasi token ke packages/design-tokens adalah T-010
+  (owner tg-ux juga) dan packages/ui adalah T-011. Jangan menulis kode produk di apps/**.

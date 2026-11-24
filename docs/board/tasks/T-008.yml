@@ -1,0 +1,29 @@
+id: T-008
+title: CI — pint, phpstan, tes, tsc, lint, Playwright smoke, audit, secret scan
+fr: []
+epic: P0
+phase: P0
+owner: tg-devops
+co_owner: null
+reviewers: [tg-security, tg-reviewer]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-001]
+status: todo
+rework_round: 0
+branch: agent/tg-devops/T-008
+acceptance:
+  - "pipelines GitHub Actions: lint/static (pint + larastan/phpstan), tests (PHPUnit), frontend (tsc + eslint), e2e smoke (Playwright)"
+  - "composer audit dan npm audit jalan di CI dan gagal pada advisory level yang disepakati"
+  - "pemindaian rahasia (secret scan) jalan dan gagal bila ada kandidat rahasia"
+  - "[setting-gated] langkah security_scan: sediakan job/placeholder yang aktif bila tool tersedia, gagal-aman (fail-safe) bila tidak"
+  - "CI gagal bila tes isolasi tenant gagal (hook untuk T-101) — sediakan job placeholder yang jelas"
+  - "Level phpstan disepakati dan dicatat di ADR (rujuk T-005 ADR-006/ADR terkait); jangan pakai level yang tidak disepakati"
+  - "Workflow dapat dijalankan lokal (Makefile target) dan di CI"
+artifacts_expected:
+  - .github/workflows/*.yml
+  - pint.json / phpstan.neon / eslint config (bila belum ada dari T-001)
+  - Makefile target
+notes: >
+  Runner GitHub tidak tersedia di lingkungan dev ini; validasi = `docker compose`/lokal menjalankan
+  perintah yang sama, plus `act` bila tersedia. Laporkan apa yang BENAR-BENAR dijalankan.

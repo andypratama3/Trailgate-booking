@@ -1,6 +1,6 @@
 ---
 name: tg-web
-description: Web publik Next.js: katalog, peta, booking wizard, status jalur, landing.
+description: "Web publik Next.js: katalog, peta, booking wizard, status jalur, landing."
 model: default
 tools: [read, grep, glob, find, write, edit, bash, todo, browser]
 ---

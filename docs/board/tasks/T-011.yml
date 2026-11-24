@@ -1,0 +1,27 @@
+id: T-011
+title: packages/ui milik sendiri — komponen dasar + katalog + axe + state loading/empty/error
+fr: [FR-39]
+epic: P0
+phase: P0
+owner: tg-ux
+co_owner: null
+reviewers: [tg-web, tg-console]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-010]
+status: todo
+rework_round: 0
+branch: agent/tg-ux/T-011
+acceptance:
+  - "Komponen (salinan shadcn/ui yang DIMILIKI sendiri, bukan dependensi tertutup): Button, Input, Select, Dialog, Sheet, Tabs, Toast, DataTable, Calendar kuota, StatusBadge jalur, QuotaMeter, Stepper booking"
+  - "Setiap komponen punya state: default, loading, empty, error"
+  - "Setiap komponen ada di katalog internal yang bisa dibuka"
+  - "axe tanpa pelanggaran serius pada katalog"
+  - "Tidak ada warna/ukuran hardcode; semua lewat token dari T-010"
+  - "Komponen dipakai dari packages/ui oleh apps/web (bukan salinan ulang)"
+artifacts_expected:
+  - packages/ui/** (komponen + package.json)
+  - katalog komponen (halaman internal)
+  - laporan axe
+notes: >
+  DataTable penuh (T-186) dan widget (T-187) menyusul di P1; di sini cukup komponen dasar + state.

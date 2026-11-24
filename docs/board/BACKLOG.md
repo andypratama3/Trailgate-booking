@@ -4,7 +4,7 @@ Indeks tugas & status. **Detail tiap tugas ada di task card** `docs/board/tasks/
 Sumber teks tugas: `docs/prd/PRD.md` §17. Kolom `Status` hanya diubah Orchestrator.
 
 Status: `todo` · `in_progress` · `in_review` · `changes_requested` · `approved` · `verifying` · `integrated` · `done` · `blocked`
-Ukuran: S ≤ 0,5 h · M ≈ 1–2 h · L ≈ 3–5 h (kerja agent + review).
+Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + review).
 `auditor` memeriksa seluruh tugas (tidak diulang tiap baris).
 
 ## P0 — Discovery & Fondasi
@@ -12,9 +12,9 @@ Ukuran: S ≤ 0,5 h · M ≈ 1–2 h · L ≈ 3–5 h (kerja agent + review).
 | ID | Tugas | FR | Owner | R1 | R2 | V | Dep | Uk | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | T-001 | Scaffold monorepo (api/web/pos/contracts), Docker compose dev, `AGENTS.md`, `OWNERS.md` | — | tg-devops | tg-architect | tg-security | tg-qa | — | M | todo |
-| T-002 | Roster agent `.omp/agents`, papan `docs/board`, skema yield, konfigurasi model | — | Orchestrator | tg-architect | tg-reviewer | tg-auditor | T-001 | M | in_review |
+| T-002 | Roster agent `.omp/agents`, papan `docs/board`, skema yield, konfigurasi model | — | Orchestrator | tg-architect | tg-reviewer | tg-auditor | T-001 *(dibalik — lihat `deviation` di T-002.yml)* | M | in_review |
 | T-003 | Pecah PRD jadi FR-ID + AC terukur + user story | semua | tg-analyst | tg-architect | tg-domain | tg-auditor | — | M | todo |
-| T-004 | Skema Mountain Pack + validator sumber + 4 pack referensi demo | FR-37 | tg-domain | tg-analyst | tg-architect | tg-auditor | T-003 | L | todo |
+| T-004 | Skema Mountain Pack + validator sumber + 4 pack referensi demo (Gede-Pangrango, Rinjani, Semeru, Arjuno-Welirang) berlabel DEMO | FR-37 | tg-domain | tg-analyst | tg-architect | tg-auditor | T-003 | L | todo |
 | T-005 | ADR: tenancy, BYO Midtrans, kuota, offline POS, enkripsi field, versi paket | — | tg-architect | tg-security | tg-data | tg-auditor | T-003 | M | todo |
 | T-006 | OpenAPI v1 skeleton + generator tipe TS + tes kontrak | semua | tg-architect | tg-backend | tg-web | tg-qa | T-005 | L | todo |
 | T-007 | Token desain, wireframe alur booking, status jalur, closure desk, POS | FR-02,09,15,16 | tg-ux | tg-web | tg-analyst | tg-qa | T-003 | L | todo |
@@ -39,12 +39,12 @@ Ukuran: S ≤ 0,5 h · M ≈ 1–2 h · L ≈ 3–5 h (kerja agent + review).
 
 | ID | Tugas | FR | Owner | R1 | R2 | V | Dep | Uk | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| T-111 | Skema + CRUD gunung/jalur/gate/pos/camp | FR-03 | tg-data → tg-backend | tg-architect | tg-reviewer | tg-qa | T-101 | L | todo |
+| T-111 | Skema + CRUD gunung/jalur/gate/pos/camp | FR-03 | tg-data (skema) → tg-backend (CRUD) | tg-architect | tg-reviewer | tg-qa | T-101 | L | todo |
 | T-112 | Unggah + validasi GeoJSON, profil elevasi | FR-04 | tg-backend | tg-reviewer | tg-data | tg-qa | T-111 | M | todo |
 | T-113 | Halaman katalog + peta MapLibre (SSR/SEO) | FR-03,04 | tg-web | tg-ux | tg-reviewer | tg-qa | T-111 | L | todo |
 | T-114 | Import Mountain Pack ke tenant demo + badge "perlu verifikasi" | FR-37 | tg-backend | tg-domain | tg-reviewer | tg-auditor | T-004,T-111 | M | todo |
 | T-115 | **Official Link Mode**: halaman status + deep-link + langganan alert | FR-35 | tg-web | tg-domain | tg-ux | tg-qa | T-113 | M | todo |
-| T-116 | Landing pemasaran TrailGate: struktur §9.4C, copy bersumber, hero status/kuota DEMO, SEO, tracking | FR-41 | tg-web | tg-ux | tg-analyst | tg-qa | T-011 | L | todo |
+| T-116 | Landing pemasaran TrailGate: struktur §9.4C, copy bersumber, hero status/kuota DEMO, SEO, tracking | FR-41 | tg-web | tg-ux | tg-analyst | tg-qa (Lighthouse di CI) | T-011 | L | todo |
 | T-117 | Landing tenant berbasis blok + halaman jalur per gunung dari Mountain Pack | FR-41,03 | tg-web | tg-ux | tg-reviewer | tg-qa | T-116,T-114 | L | todo |
 
 ### E3 Kuota & Closure
@@ -93,7 +93,7 @@ Ukuran: S ≤ 0,5 h · M ≈ 1–2 h · L ≈ 3–5 h (kerja agent + review).
 |---|---|---|---|---|---|---|---|---|---|
 | T-161 | Token QR bertanda tangan + PDF tiket + revoke list | FR-15 | tg-backend | tg-security | tg-reviewer | tg-qa | T-152 | M | todo |
 | T-162 | PWA POS: scan, check-in/out, daftar manifest | FR-16,17 | tg-console | tg-ux | tg-reviewer | tg-qa | T-161 | L | todo |
-| T-163 | Offline: antrean IndexedDB, sinkron batch `client_event_id`, konflik | FR-16 | tg-console + tg-backend | tg-reviewer | tg-architect | tg-qa | T-162 | L | todo |
+| T-163 | Offline: antrean IndexedDB, sinkron batch `client_event_id`, konflik | FR-16 | tg-console + tg-backend (endpoint) | tg-reviewer | tg-architect | tg-qa | T-162 | L | todo |
 | T-164 | Manifest + headcount real-time | FR-17 | tg-backend | tg-reviewer | tg-data | tg-qa | T-163 | M | todo |
 
 ### E8 Notifikasi
@@ -112,10 +112,10 @@ Ukuran: S ≤ 0,5 h · M ≈ 1–2 h · L ≈ 3–5 h (kerja agent + review).
 | T-181 | Dashboard (okupansi, pendapatan, kasus terbuka) | FR-19 | tg-console | tg-ux | tg-reviewer | tg-qa | T-145 | M | todo |
 | T-182 | Kelola kuota/kalender/booking/pencarian | FR-05,19 | tg-console | tg-ux | tg-reviewer | tg-qa | T-121 | L | todo |
 | T-183 | Laporan Excel/PDF (harian, per jalur, rekonsiliasi) | FR-19 | tg-backend | tg-reviewer | tg-analyst | tg-qa | T-154 | M | todo |
-| T-184 | Audit log + penampil | FR-20 | tg-backend + tg-console | tg-security | tg-reviewer | tg-qa | T-102 | M | todo |
+| T-184 | Audit log + penampil | FR-20 | tg-backend (log) + tg-console (UI) | tg-security | tg-reviewer | tg-qa | T-102 | M | todo |
 | T-185 | Shell dashboard: sidebar/topbar, nav RBAC, command palette, notifikasi | FR-40 | tg-console | tg-ux | tg-reviewer | tg-qa | T-011,T-102 | L | todo |
 | T-186 | DataTable generik (TanStack Table) | FR-40 | tg-console | tg-ux | tg-reviewer | tg-qa | T-185 | M | todo |
-| T-187 | Widget operasional + endpoint agregasi | FR-40 | tg-console + tg-backend | tg-ux | tg-reviewer | tg-qa | T-186,T-164 | L | todo |
+| T-187 | Widget operasional + endpoint agregasi | FR-40 | tg-console + tg-backend (endpoint) | tg-ux | tg-reviewer | tg-qa | T-186,T-164 | L | todo |
 | T-188 | Dashboard super admin: tenant, kesehatan queue/webhook, flag fitur | FR-40 | tg-console | tg-security | tg-reviewer | tg-qa | T-185 | M | todo |
 
 ### E10 Kualitas & Keamanan
@@ -160,5 +160,5 @@ Ukuran: S ≤ 0,5 h · M ≈ 1–2 h · L ≈ 3–5 h (kerja agent + review).
 | T-304 | Open trip (gabung, patungan) | FR-30 | tg-backend | tg-reviewer | tg-analyst | tg-qa | P2 | L | todo |
 | T-305 | Inventori sewa alat & homestay | FR-31 | tg-backend | tg-reviewer | tg-data | tg-qa | P2 | L | todo |
 | T-306 | Laporan kondisi jalur + ulasan (moderasi) | FR-34 | tg-web | tg-security | tg-ux | tg-qa | P2 | M | todo |
-| T-307 | **Paket template**: `TENANT_MODE=single`, installer, seed bersih, lisensi, panduan | FR-33 | tg-devops | tg-docs | tg-security | tg-qa | P2 | L | todo |
+| T-307 | **Paket template**: `TENANT_MODE=single`, installer, seed bersih, lisensi, panduan | FR-33 | tg-devops | tg-docs | tg-security | tg-qa (instal di server bersih < 30 mnt) | P2 | L | todo |
 | T-308 | Dokumentasi publik tenant + video onboarding | — | tg-docs | tg-analyst | tg-ux | tg-auditor | T-301 | M | todo |
