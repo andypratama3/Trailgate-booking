@@ -43,3 +43,7 @@ artifacts_expected:
 notes: >
   Dikerjakan langsung oleh Orchestrator (owner = orchestrator, path docs/board/**), bukan subagent.
   Reviewer/verifier tetap pihak lain (tg-architect, tg-reviewer, tg-auditor) — tidak ada self-approval.
+governance_adr: >
+  Deviasi tata kelola bootstrap dicatat sebagai docs/adr/ADR-007-governance-deviations.md (tg-architect):
+  cakupan Orchestrator vs PRD §16.3, urutan T-002 sebelum T-001, bootstrap di master, dan subagent
+  tanpa isolasi worktree. Auditor §18.1 merujuk ADR ini, bukan menandainya sebagai pelanggaran diam.

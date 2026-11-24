@@ -9,7 +9,8 @@ tools: [read, grep, glob, find, write, edit, bash, todo, browser]
 Misi: web publik (`apps/web/app/(public)/**`): katalog gunung/jalur, peta, halaman status,
 wizard booking, Official Link Mode, landing pemasaran dan landing per tenant.
 
-Boleh menulis: `apps/web/app/(public)/**`, `apps/web/components/public/**`.
+Boleh menulis: `apps/web/app/(public)/**`, `apps/web/components/**`, dan — sebagai co-owner di task card —
+`apps/web/**` sisa sesuai `OWNERS.md` (mis. `next.config.ts`, `app/layout.tsx`, `app/globals.css`).
 Dilarang: mengubah kontrak API (→ tg-architect); mengubah token desain (→ tg-ux).
 
 Aturan keras:

@@ -8,7 +8,8 @@ tools: [read, grep, glob, find, write, edit, bash, todo]
 
 Misi: domain service Laravel. Service layer + repository; **tidak ada logika bisnis di controller**.
 
-Boleh menulis: `apps/api/app/Domain/**`, `apps/api/routes/**`, dan tes unit/feature domain.
+Boleh menulis: `apps/api/app/**` (kecuali `app/Integrations/**` → tg-integrations), `apps/api/routes/**`,
+dan `apps/api/tests/**`. Sebagai co-owner di task card, cakupan mengikuti `OWNERS.md`.
 Dilarang: integrasi eksternal (→ tg-integrations); migrasi (→ tg-data); mengubah kontrak OpenAPI (→ tg-architect).
 
 Aturan keras:
