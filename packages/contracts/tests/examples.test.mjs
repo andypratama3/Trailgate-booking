@@ -43,7 +43,6 @@ const CORE_OPERATION_IDS = new Set([
   'createTenant',
   'getTenant',
   'updateTenant',
-  'createTenant',
 ]);
 
 const ops = operations();
@@ -93,8 +92,10 @@ test('setiap operasi tulis/menghasilkan JSON punya contoh request/response yang 
         `${where}: contoh request wajib ada`,
       );
     }
-    const jsonSuccess = Object.keys(op.responses).filter((s) => s.startsWith('2'));
-    if (jsonSuccess.length > 0) {
+    const hasJsonSuccess = Object.entries(op.responses).some(
+      ([status, response]) => status.startsWith('2') && response.content?.['application/json'],
+    );
+    if (hasJsonSuccess) {
       assert.ok(
         cases.some((c) => c.kind === 'response' && c.value !== undefined),
         `${where}: contoh respons 2xx wajib ada`,
@@ -266,6 +267,29 @@ test('payload yang melanggar aturan ditolak validator', () => {
       pointer: '#/components/schemas/PageMeta',
       why: 'total negatif',
       payload: { page: 1, per_page: 20, total: -1, total_pages: 1 },
+    },
+    {
+      pointer: '#/components/schemas/RouteStatus',
+      why: 'surat resmi tanpa tautan/nomor sumber',
+      payload: { ...get('#/components/schemas/RouteStatus').example, source_url: null, source_ref: null },
+    },
+    {
+      pointer: '#/components/schemas/RuleCreateRequest',
+      why: 'scope route tanpa route_slug',
+      payload: { ...get('#/components/schemas/RuleCreateRequest').example, route_slug: undefined },
+    },
+    {
+      pointer: '#/components/schemas/BookingLeader',
+      why: 'WNA (is_foreign) dengan NIK, bukan paspor',
+      payload: { ...get('#/components/schemas/BookingLeader').example, is_foreign: true },
+    },
+    {
+      pointer: '#/components/schemas/AvailabilityResponse',
+      why: 'rentang melebihi 62 hari',
+      payload: {
+        ...get('#/components/schemas/AvailabilityResponse').example,
+        days: Array.from({ length: 63 }, () => get('#/components/schemas/AvailabilityDay').example),
+      },
     },
   ];
 

@@ -374,3 +374,34 @@ test('cakupan PRD §11 terpetakan ke operasi di spec', () => {
     assert.ok(byOperationId.has(operationId), `operasi pendukung hilang: ${operationId}`);
   }
 });
+
+test('TenantType mengikuti PRD §4.1; SaaS/template adalah mode delivery, bukan tipe', () => {
+  assert.deepEqual(get('#/components/schemas/TenantType').enum, [
+    'managed_basecamp',
+    'trek_operator',
+    'official_link',
+    'white_label_authority',
+  ]);
+  assert.equal(spec['x-tenancy'].tenant_type_field, 'tenants.type');
+  assert.equal(spec['x-tenancy'].tenant_types_source, '#/components/schemas/TenantType');
+  assert.match(spec['x-tenancy'].delivery_modes_note, /bukan tipe tenant/);
+});
+
+test('tidak ada scope peran yang mati dan field internal tidak bocor ke API', () => {
+  const usedScopes = new Set(ops.flatMap(({ op }) => op['x-rbac-scopes']));
+  for (const [role, scopes] of Object.entries(spec['x-rbac-roles'])) {
+    for (const scope of scopes) {
+      assert.ok(usedScopes.has(scope), `scope ${scope} pada peran ${role} tidak dipakai operasi mana pun`);
+    }
+  }
+  assert.ok(
+    !('object_key' in get('#/components/schemas/Document').properties),
+    'object_key adalah field internal — tidak boleh muncul di respons API',
+  );
+});
+
+test('batas rentang availability 62 hari dinyatakan di skema dan di 422', () => {
+  assert.equal(get('#/components/schemas/AvailabilityResponse').properties.days.maxItems, 62);
+  const entry = byOperationId.get('getRouteAvailability');
+  assert.match(entry.op.responses['422'].description, /62 hari/);
+});
