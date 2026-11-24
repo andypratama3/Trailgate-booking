@@ -1,0 +1,28 @@
+id: T-013
+title: Gate paket — CLI `@alibaba-group/open-code-review` (ocr) untuk seat reviewer tg-ocr
+fr: []
+epic: P0
+phase: P0
+owner: tg-security
+co_owner: [tg-devops]
+reviewers: [tg-architect, tg-devops]
+verifier: tg-auditor
+auditor: tg-auditor
+depends_on: []
+status: todo
+rework_round: 0
+branch: agent/tg-security/T-013
+acceptance:
+  - "Keputusan tertulis approve | defer | reject atas paket `@alibaba-group/open-code-review` (npm global, CLI `ocr`), dengan alasan + tingkat risiko."
+  - "Dicatat bahwa instalasi bersifat GLOBAL di host (bukan dependensi workspace, tidak masuk `pnpm-lock.yaml`/`package.json` produk)."
+  - "Dicatat aliran data: `ocr review` mengirim diff source code ke provider LLM yang dikonfigurasi terpisah (`ocr config provider`); wajib ada persetujuan Andy sebelum dipakai pada repo privat."
+  - "DILARANG: menaruh API key/credential OCR di repo, log, atau fixture (AGENTS.md #11)."
+  - "Bila approve: syarat operasional (siapa yang install, versi ter-pin, jaringan yang diizinkan) tertulis."
+artifacts_expected:
+  - docs/security/package-gates/T-013-open-code-review.md
+notes: >
+  Latar: pengguna memasang skill `alibaba/open-code-review` (`npx skills add`) dan meminta seat yang
+  menjalankannya. Seat `tg-ocr` dibuat (`.omp/agents/tg-ocr.md`, reviewer mesin, tanpa hak tulis).
+  AGENTS.md #10: paket baru wajib diajukan ke tg-security via task card — kartu ini pengajuannya.
+  Saat ini `ocr` BELUM terpasang di host dan tidak ada provider key di environment; sampai keputusan
+  approve + konfigurasi provider, seat `tg-ocr` tidak dapat dijalankan. Jangan install sendiri.

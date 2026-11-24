@@ -28,6 +28,10 @@ docs/board/**  (kecuali audit/**)                     orchestrator
 docs/board/audit/**                    tg-auditor
 ```
 
+
+Reviewer mesin tidak memiliki path tulis: `tg-ocr` (skill `open-code-review`) mengeluarkan ReviewReport
+ke Orchestrator; `tg-reviewer` juga tanpa hak tulis. Laporan audit verifier = `docs/board/audit/**` (tg-auditor).
+
 ## Path infra yang tidak terdaftar di PRD §16.4 (keputusan Orchestrator)
 
 ```

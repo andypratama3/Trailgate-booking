@@ -23,6 +23,7 @@ Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + re
 | T-010 | Setup Tailwind v4 CSS-first + pipeline token + budget ukuran CSS di CI | FR-39 | tg-ux (token) + tg-devops (pipeline) | tg-web | tg-reviewer | tg-qa | T-001 | M | in_review |
 | T-011 | `packages/ui` milik sendiri: komponen dasar + katalog + axe + state loading/empty/error | FR-39 | tg-ux | tg-web | tg-console | tg-qa | T-010 | L | todo |
 | T-012 | Tema tenant runtime + validator kontras WCAG AA + mode gelap | FR-39,02 | tg-web | tg-ux | tg-security | tg-qa | T-011 | M | todo |
+| T-013 | Gate paket CLI `@alibaba-group/open-code-review` (ocr) untuk seat tg-ocr (AGENTS.md #10) | — | tg-security | tg-architect | tg-devops | tg-auditor | — | S | todo |
 
 ## P1 — MVP
 
