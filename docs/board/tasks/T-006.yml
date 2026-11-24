@@ -9,8 +9,8 @@ reviewers: [tg-backend, tg-web]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-005]
-status: done
-rework_round: 0
+status: changes_requested
+rework_round: 1
 branch: agent/tg-architect/T-006
 acceptance:
   - "OpenAPI 3.1 di packages/contracts/openapi.yaml adalah sumber kebenaran"
