@@ -23,6 +23,8 @@ acceptance:
   - "Image produksi (infra/) berjalan sebagai NON-ROOT (www-data/node) — temuan tg-security T-001 F1B-4; image dev boleh tetap root."
   - "Base image dipin tag penuh/digest dan `pecl install redis` dipin versi — temuan tg-security T-001 F1B-5."
   - "Secret scan punya allowlist TERTULIS yang TANPA memuat nilai kunci apa pun: rule allowlist bersifat path+commit-scoped (`apps/api/.env.testing` di commit f29df88; nilai kunci sudah dikosongkan ke depan di dc58998, lihat O-7). DILARANG menyalin nilai kunci penuh ke dalam repo (tg-security F-8: aturan berbasis nilai yang dipotong-potong tidak akan cocok, sedangkan aturan berbasis path+commit tetap cocok). Tanpa rule ini, secret scan gagal pada hari pertama."
+  - "`docker/api/Dockerfile` CMD masih `php artisan serve` TANPA `--no-reload` — cacat env-stripping yang sudah diperbaiki di `docker-compose.yml`. Samakan atau hapus CMD-nya (satu sumber kebenaran). Temuan tg-architect T-001 F-8."
+  - "Komentar `pin digest menunggu ADR-006` di `docker/api/Dockerfile` harus menunjuk ADR-006 §3 sebagai item TERBUKA berdeadline T-008 (ADR-006 sudah accepted). Temuan F-9."
 artifacts_expected:
   - .github/workflows/*.yml
   - pint.json / phpstan.neon / eslint config (bila belum ada dari T-001)

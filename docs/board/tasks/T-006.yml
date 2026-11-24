@@ -9,7 +9,7 @@ reviewers: [tg-backend, tg-web]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-005]
-status: todo
+status: in_review
 rework_round: 0
 branch: agent/tg-architect/T-006
 acceptance:
@@ -28,3 +28,6 @@ artifacts_expected:
 notes: >
   Kontrak = sumber kebenaran; perubahan kontrak hanya oleh tg-architect via ADR.
   tg-backend dan tg-web adalah konsumen: mereka TIDAK mengubah kontrak, hanya mengonsumsi tipe ter-generate.
+  Temuan P2 review tg-backend (open, bukan penghalang): T-006-F1 `getRoute` belum deklarasi respons
+  400 (tambahkan `#/components/responses/BadRequest`); T-006-F2 `updateRule` belum masuk map
+  PRD_SECTION_11 di tests/spec.test.mjs (tambahkan ke array Konsol).

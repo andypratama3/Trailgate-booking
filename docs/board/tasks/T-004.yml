@@ -9,7 +9,7 @@ reviewers: [tg-analyst, tg-architect]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: [T-003]
-status: changes_requested
+status: in_review
 rework_round: 1
 branch: agent/tg-domain/T-004
 acceptance:

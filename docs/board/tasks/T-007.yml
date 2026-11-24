@@ -9,8 +9,8 @@ reviewers: [tg-web, tg-analyst]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-003]
-status: todo
-rework_round: 0
+status: in_review
+rework_round: 1
 branch: agent/tg-ux/T-007
 acceptance:
   - "Token desain (warna, tipografi, spasi, radius, bayangan, motion) terdefinisi sebagai sumber tunggal, terang + gelap"
