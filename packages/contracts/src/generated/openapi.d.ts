@@ -3113,6 +3113,7 @@ export interface operations {
                     "application/json": components["schemas"]["Route"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalServerError"];
