@@ -1,0 +1,27 @@
+id: T-003
+title: Pecah PRD jadi FR-ID + AC terukur + user story
+fr: [all]
+epic: P0
+phase: P0
+owner: tg-analyst
+co_owner: null
+reviewers: [tg-architect, tg-domain]
+verifier: tg-auditor
+auditor: tg-auditor
+depends_on: []
+status: todo
+rework_round: 0
+branch: agent/tg-analyst/T-003
+acceptance:
+  - "Setiap FR-01..FR-41 punya entri: id, judul, prd_ref (bagian §PRD), prioritas MoSCoW, fase"
+  - "Setiap FR punya >= 1 acceptance criteria yang bisa diverifikasi (given/when/then atau perintah)"
+  - "Setiap FR punya user story (sebagai <persona>, saya ingin <aksi>, supaya <nilai>) mengacu §3"
+  - "Label [ASUMSI]/[VERIFIKASI]/[REKOMENDASI]/[FAKTA] dari PRD dipertahankan, tidak diubah jadi fakta"
+  - "Tidak ada kebutuhan baru yang tidak ada di PRD (kecuali ditandai usulan baru)"
+  - "Tabel keterlacakan FR -> prd_ref dibuat"
+artifacts_expected:
+  - docs/requirements/FR.md (tabel FR + AC + user story)
+  - docs/requirements/traceability.md
+notes: >
+  Tulis HANYA di docs/prd/** dan docs/requirements/**. Jangan sentuh kode.
+  AC harus terukur karena dipakai auditor untuk cek FR -> tugas -> tes (18.1).

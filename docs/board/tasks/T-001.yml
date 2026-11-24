@@ -1,0 +1,34 @@
+id: T-001
+title: Scaffold monorepo (api/web/pos/contracts) + Docker compose dev
+fr: []
+epic: P0
+phase: P0
+owner: tg-devops
+co_owner: null
+reviewers: [tg-architect, tg-security]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: []
+status: todo
+rework_round: 0
+branch: agent/tg-devops/T-001
+acceptance:
+  - "Struktur sesuai PRD §9.1: apps/api, apps/web, apps/pos, packages/contracts, packages/design-tokens, packages/ui, docs/, infra/"
+  - "apps/api = Laravel 12, PHP >= 8.2; `php artisan --version` jalan; versi ter-pin di composer.lock"
+  - "apps/web = Next.js App Router + TypeScript; `pnpm build` hijau"
+  - "apps/pos ada (route group / app terpisah) dengan struktur dijelaskan"
+  - "docker compose menyalakan api + web + MySQL 8 + Redis; `docker compose config` valid"
+  - "package.json workspace (pnpm) mengenali apps/* dan packages/*"
+  - ".env.example lengkap untuk api+web; TIDAK ada rahasia ter-commit"
+  - "AGENTS.md dan OWNERS.md dipertahankan apa adanya (milik orchestrator; butuh perubahan => needs_info)"
+artifacts_expected:
+  - scaffold apps/api
+  - scaffold apps/web
+  - scaffold apps/pos
+  - packages/* (placeholder package.json)
+  - docker-compose.yml + docker/
+  - .env.example
+  - README.md
+notes: >
+  Versi paket TIDAK dipatok di PRD; agent wajib cek Packagist/npm dan mencatat versi ter-pin
+  sebagai kandidat ADR-001 (tg-architect). Jangan mengubah path milik owner lain.

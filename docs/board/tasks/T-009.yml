@@ -1,0 +1,27 @@
+id: T-009
+title: Skrip wawancara + lembar validasi pilot (5 basecamp, 3 TO)
+fr: [FR-35]
+epic: P0
+phase: P0
+owner: tg-analyst
+co_owner: null
+reviewers: [tg-domain, Andy]
+verifier: tg-auditor
+auditor: tg-auditor
+depends_on: []
+status: todo
+rework_round: 0
+branch: agent/tg-analyst/T-009
+acceptance:
+  - "Skrip wawancara basecamp (5) dan TO (3): pembuka, pertanyaan inti, penutup"
+  - "Setiap asumsi di PRD §20.3 punya >= 1 pertanyaan yang menguji/membuktikannya"
+  - "Lembar validasi pilot: kriteria kesediaan pilot, syarat, ekspektasi (gratis 3 bulan)"
+  - "Pertanyaan tentang willingness-to-pay sesuai §14 (Rp 299k / 899k / lisensi template)"
+  - "TIDAK ada data pribadi nyata; semua contoh tempat kosong"
+artifacts_expected:
+  - docs/requirements/interviews/basecamp-guide.md
+  - docs/requirements/interviews/to-guide.md
+  - docs/requirements/interviews/pilot-validation-sheet.md
+notes: >
+  Reviewer R2 = Andy (manusia) -- tidak bisa di-spawn agent. Orchestrator menandai review manusia
+  sebagai item gate G0. Agent hanya menyiapkan kit; wawancara itu sendiri pekerjaan manusia.
