@@ -2,5 +2,33 @@
   "name": "@trailgate/contracts",
   "version": "0.0.0",
   "private": true,
-  "description": "Kontrak API: spesifikasi OpenAPI dan tipe TypeScript yang di-generate. Milik tg-architect."
+  "description": "Kontrak API: spesifikasi OpenAPI dan tipe TypeScript yang di-generate. Milik tg-architect.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi.yaml": "./openapi.yaml"
+  },
+  "types": "./src/index.ts",
+  "files": [
+    "openapi.yaml",
+    "src"
+  ],
+  "scripts": {
+    "generate": "openapi-typescript openapi.yaml -o src/generated/openapi.d.ts",
+    "generate:check": "openapi-typescript openapi.yaml -o src/generated/openapi.d.ts --check",
+    "validate": "redocly lint openapi.yaml",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.83.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "yaml": "2.9.1"
+  }
 }

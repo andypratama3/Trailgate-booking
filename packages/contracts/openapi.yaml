@@ -1,0 +1,4357 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: TrailGate Booking API
+  version: 1.0.0
+  summary: Kontrak API v1 TrailGate (booking kuota jalur pendakian, multi-tenant).
+  description: |
+    **Kontrak ini adalah sumber kebenaran** (contracts-first, PRD §11). Tipe TypeScript di
+    `src/generated/**` di-*generate* dari file ini; perubahan kontrak hanya lewat ADR oleh
+    `tg-architect` (OWNERS.md). Konsumen (`apps/web`, `apps/pos`, `apps/api`) mengonsumsi tipe
+    ter-generate, bukan menyalin bentuk payload.
+
+    **Versi di URL.** Semua path kanonik memakai prefix `/v1` (PRD §11). Origin/prefix teknis
+    (mis. `api.trailgate.id`, reverse proxy, atau prefix rute framework) bukan bagian kontrak.
+
+    **Tenant: bukan path parameter.** Tenant di-resolve dari host/subdomain (`Host` header) atau
+    dari token (mis. token perangkat POS, token super admin), sekali per request di middleware
+    (ADR-001 keputusan 3). Tidak ada endpoint yang menerima `tenant_id` di body; tidak ada path
+    yang memuat tenant **kecuali** webhook Midtrans `/v1/webhooks/midtrans/{tenant}`, yang
+    diwajibkan PRD §11 dan ADR-002 keputusan 3 (Midtrans hanya tahu URL yang kita daftarkan).
+    Deklarasi mesin: lihat `x-tenancy`. Mode `TENANT_MODE=single` (paket template single-tenant)
+    memakai **build dan kontrak yang sama**: resolusi tenant di-short-circuit ke satu baris
+    `tenants`, skema/kolom/scope tetap dipakai, dan tidak ada percabangan perilaku API
+    (ADR-001 keputusan 6). Klien tidak boleh mengasumsikan mode; keduanya dilayani kontrak ini.
+
+    **Uang = integer rupiah.** Semua nominal memakai `Money` (integer, tanpa desimal, `IDR`);
+    `float`/`double` dilarang untuk uang (ADR-002 keputusan 9, AGENTS.md aturan 6). Nilai desimal
+    dari penyedia pembayaran (mis. `gross_amount_raw` Midtrans) dikonversi ke integer sebelum
+    disimpan.
+
+    **Waktu.** Semua timestamp memakai RFC 3339 dengan offset eksplisit (`DateTime`); tanggal
+    kalender memakai `LocalDate`. Jadwal kuota, jendela pembukaan, cutoff, dan perbandingan
+    tanggal dievaluasi dalam **zona waktu jalur** (`routes.timezone`, mis. `Asia/Makassar`) —
+    bukan zona server, bukan zona klien (PRD §8, AC-26.4). Deklarasi mesin: `x-time-semantics`.
+
+    **Idempotensi.** Setiap operasi tulis menerima header `Idempotency-Key` (PRD §10.3/§11);
+    pengiriman ulang key yang sama menghasilkan satu resource/charge (AC-27.3). Webhook Midtrans
+    adalah satu-satunya pengecualian (dipanggil penyedia, bukan klien kita): idempotensinya
+    diturunkan dari `order_id` + `payments.provider_ref` unik dan verifikasi signature
+    (ADR-002 keputusan 3/4).
+
+    **Galat.** Amplop galat selalu `{code, message, details}` (`Error`); `code` berasal dari
+    daftar tertutup `ErrorCode`. Setiap operasi mendeklarasikan respons galatnya lewat komponen
+    bersama di `components.responses`.
+
+    **Pagination.** Semua operasi ber-`x-paginated: true` memakai parameter kueri `page` dan
+    `per_page` serta amplop `{data, meta}` dengan `meta` = `PageMeta`.
+
+    **Autentikasi & RBAC.** Setiap operasi mendeklarasikan `security` (skema dari
+    `components.securitySchemes`), ekstensi `x-auth` (kelas autentikasi), dan `x-rbac-scopes`
+    (scope yang dibutuhkan). Peran FR-01 dan scope-nya ada di `x-rbac-roles`; kosakata scope di
+    `x-rbac-scopes`. Peran: `super_admin`, `tenant_admin`, `kasir`, `petugas pos` (`pos_officer`),
+    `guide`, `pendaki` (`hiker`), ditambah `anonymous` (pengunjung publik) dan `midtrans_webhook`
+    (bukan peran manusia). Matriks peran×endpoint ini diuji oleh tes kontrak.
+
+    **Rate limit.** 429 dengan kode `rate_limited` dan header `Retry-After` diterapkan per
+    IP/akun/tenant (PRD §11/§13, AC-27.1).
+  license:
+    name: Proprietary (TrailGate)
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: https://{tenant_host}
+    description: >
+      Origin per tenant (subdomain atau domain kustom, ADR-001/FR-02). Tenant aktif diambil dari
+      `Host` header. Mode `TENANT_MODE=single` memakai origin tunggal pelanggan.
+    variables:
+      tenant_host:
+        default: demo.trailgate.id
+        description: Subdomain default (`<tenant>.trailgate.id`) atau domain kustom tenant.
+tags:
+  - name: public
+    description: Katalog, status jalur, ketersediaan kuota, langganan alert — anonim.
+  - name: booking
+    description: Hold kuota, pengisian anggota, pembayaran, reschedule, pembatalan.
+  - name: documents
+    description: Dokumen identitas/syarat (surat sehat, izin ortu, consent, asuransi) via signed URL.
+  - name: payments
+    description: Webhook penyedia pembayaran (Midtrans BYO per tenant).
+  - name: console
+    description: Konsol tenant — kuota, closure, disruption, booking, laporan, rules.
+  - name: pos
+    description: PWA petugas pos — batch scan offline, manifest, daftar revoke.
+  - name: admin
+    description: Super admin platform — tenant dan billing (invoice bulanan).
+x-tenancy:
+  resolution: host-or-token
+  host_header: Host
+  path_parameter: false
+  token_schemes:
+    - posDeviceToken
+    - platformAdminToken
+    - bookingLinkToken
+  path_exceptions:
+    - /v1/webhooks/midtrans/{tenant}
+  modes:
+    saas: >
+      Resolusi tenant per request dari subdomain/domain kustom; `tenant_id` + global scope
+      menyuntikkan filter pada setiap query tenant-scoped (ADR-001 keputusan 2/3).
+    single: >
+      `TENANT_MODE=single`: tepat satu baris `tenants`; resolusi di-short-circuit ke tenant itu.
+      Skema, kolom `tenant_id`, global scope, migrasi, dan kontrak API tetap sama; tidak ada
+      percabangan pada jalur tulis data (ADR-001 keputusan 6).
+x-time-semantics:
+  storage: UTC
+  evaluation: route-local
+  route_timezone_field: routes.timezone
+  reference_timezone: Asia/Makassar
+  timestamps: "RFC 3339 dengan offset eksplisit; tipe schema: DateTime"
+  calendar_dates: "LocalDate dalam zona waktu jalur (AC-26.4), mis. 2026-12-31 berarti 2026-12-31 di Asia/Makassar"
+  rule: >
+    Jendela pembukaan kuota, cutoff, batas check-in, dan perbandingan `date`/`starts_at`/`ends_at`
+    dihitung di `routes.timezone`; klien menampilkan waktu dalam zona jalur, bukan zona server
+    (PRD §8, AC-26.4; ADR-003 keputusan 1/3).
+x-money:
+  currency: IDR
+  representation: integer
+  schema: '#/components/schemas/Money'
+  rule: >
+    Integer rupiah tanpa desimal; `float`/`double`/`decimal` dilarang (ADR-002 keputusan 9).
+    Nilai desimal dari penyedia pembayaran dikonversi sebelum disimpan.
+x-idempotency:
+  header: Idempotency-Key
+  required_on: "semua operasi tulis, kecuali webhook Midtrans"
+  retention: 24 jam
+  scope: per tenant + per operasi + per key
+  contract: "retry dengan key sama → resource/charge yang sama (AC-27.3, ADR-003 keputusan 6)"
+x-pagination:
+  params: [page, per_page]
+  meta_schema: '#/components/schemas/PageMeta'
+  envelope: '{data: [...], meta: PageMeta}'
+x-rbac-scopes:
+  public.read: Baca katalog, status jalur, ketersediaan kuota (anonim maupun terautentikasi).
+  alerts.subscribe: Berlangganan notifikasi "beri tahu saya jika dibuka" (FR-35).
+  booking.create: Membuat hold booking (termasuk anonim; dibatasi rate limit + captcha).
+  booking.member.manage: Mengisi/mengubah data anggota lewat link booking bertanda tangan.
+  booking.pay: Membuat transaksi pembayaran Midtrans untuk booking tersebut.
+  booking.reschedule: Mengajukan reschedule booking tersebut (§6.4).
+  booking.cancel: Membatalkan booking tersebut.
+  documents.upload: Mendapatkan signed upload URL untuk dokumen anggota.
+  documents.read: Mendapatkan signed download URL untuk dokumen anggota (akses dicatat, ADR-005).
+  console.quota.read: Melihat slot kuota tenant.
+  console.quota.write: Mengubah kapasitas slot kuota (tidak boleh di bawah reserved+sold, ADR-003).
+  console.closure.read: Melihat closure jalur.
+  console.closure.write: Membuat/mengonfirmasi/membatalkan closure (wajib sumber surat, PRD §6.1).
+  console.disruption.read: Melihat Disruption Case.
+  console.disruption.write: Menyelesaikan Disruption Case (refund/reschedule/closed).
+  console.booking.read: Melihat booking tenant (daftar dan detail).
+  console.report.read: Menjalankan laporan operasional/finansial.
+  console.rules.read: Melihat requirement rule jalur.
+  console.rules.write: Membuat/mengubah requirement rule (wajib `source_url` + `verified_at`).
+  pos.scan: Sinkron event check-in/out, manifest, dan daftar revoke tiket (perangkat POS).
+  admin.tenants.read: Melihat tenant lintas-tenant (super admin).
+  admin.tenants.write: Membuat/mengubah tenant lintas-tenant (super admin).
+  admin.billing.read: Melihat invoice bulanan platform (FR-28, P3).
+  webhook.ingest: Menerima webhook penyedia pembayaran (signature terverifikasi).
+x-rbac-roles:
+  anonymous: [public.read, alerts.subscribe, booking.create]
+  hiker:
+    [public.read, alerts.subscribe, booking.create, booking.member.manage, booking.pay,
+     booking.reschedule, booking.cancel, documents.upload, documents.read]
+  guide: [public.read, console.booking.read]
+  pos_officer: [pos.scan]
+  kasir: [public.read, console.quota.read, console.booking.read, console.report.read, documents.read]
+  tenant_admin:
+    [public.read, console.quota.read, console.quota.write, console.closure.read,
+     console.closure.write, console.disruption.read, console.disruption.write,
+     console.booking.read, console.report.read, console.rules.read, console.rules.write,
+     documents.read]
+  super_admin: [admin.tenants.read, admin.tenants.write, admin.billing.read]
+  midtrans_webhook: [webhook.ingest]
+paths:
+  /v1/routes:
+    get:
+      operationId: listRoutes
+      security: []
+      tags: [public]
+      summary: Daftar jalur tenant
+      description: >
+        Katalog jalur milik tenant yang di-resolve dari host, dengan status buka/tutup ringkas
+        dan sisa kuota 7 hari ke depan (AC-03.3). Tenant `official_link` mengembalikan
+        `booking_enabled: false` dan `deep_link_url` ke sistem resmi (FR-35).
+      x-auth: none
+      x-rbac-scopes: [public.read]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: mountain
+          in: query
+          required: false
+          description: Filter slug gunung.
+          schema:
+            type: string
+            maxLength: 80
+            example: rinjani
+        - name: q
+          in: query
+          required: false
+          description: Pencarian nama jalur/gunung.
+          schema:
+            type: string
+            maxLength: 100
+            example: sembalun
+        - name: status
+          in: query
+          required: false
+          description: Filter status jalur.
+          schema:
+            $ref: '#/components/schemas/RouteStatusValue'
+      responses:
+        "200":
+          description: Daftar jalur (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteList'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/routes/{slug}:
+    parameters:
+      - $ref: '#/components/parameters/PathSlug'
+    get:
+      operationId: getRoute
+      security: []
+      tags: [public]
+      summary: Detail jalur
+      description: >
+        Detail satu jalur: profil, GeoJSON, persyaratan aktif (requirement rules) dengan
+        `source_url` + `verified_at`, dan ringkasan ketersediaan.
+      x-auth: none
+      x-rbac-scopes: [public.read]
+      responses:
+        "200":
+          description: Detail jalur.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/routes/{slug}/availability:
+    parameters:
+      - $ref: '#/components/parameters/PathSlug'
+    get:
+      operationId: getRouteAvailability
+      security: []
+      tags: [public]
+      summary: Ketersediaan kuota per tanggal
+      description: >
+        Sisa kuota per tanggal untuk rentang `from`..`to` (maksimum 62 hari). Tanggal
+        diinterpretasikan dalam `routes.timezone` (AC-26.4). Slot yang tertutup closure
+        mengembalikan `status: closed` dan `effective_capacity: 0` (ADR-003 keputusan 3).
+      x-auth: none
+      x-rbac-scopes: [public.read]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Tanggal awal (inklusif), zona waktu jalur.
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+        - name: to
+          in: query
+          required: true
+          description: Tanggal akhir (inklusif), zona waktu jalur.
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+      responses:
+        "200":
+          description: Ketersediaan kuota.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/routes/{slug}/status:
+    parameters:
+      - $ref: '#/components/parameters/PathSlug'
+    get:
+      operationId: getRouteStatus
+      security: []
+      tags: [public]
+      summary: Status buka/tutup jalur
+      description: >
+        Status terkini beserta sumber dan waktu verifikasi (PRD §6.1: aturan tanpa sumber =
+        tidak dapat dipercaya). Tenant `official_link` memakai endpoint ini sebagai sumber
+        tampilan "status resmi + tanggal" (AC-35.1).
+      x-auth: none
+      x-rbac-scopes: [public.read]
+      responses:
+        "200":
+          description: Status jalur.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteStatus'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/routes/{slug}/alerts:
+    parameters:
+      - $ref: '#/components/parameters/PathSlug'
+    post:
+      operationId: subscribeRouteAlert
+      security: []
+      tags: [public]
+      summary: Langganan notifikasi "beri tahu saya jika dibuka"
+      description: >
+        Dipakai mode Official Link Mode (FR-35 AC-35.3). Anonim, karena itu dibatasi rate limit
+        per IP dan captcha adaptif (PRD §13). Notifikasi dikirim saat status jalur berubah
+        menjadi `open`.
+      x-auth: none
+      x-rbac-scopes: [alerts.subscribe]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertSubscriptionRequest'
+      responses:
+        "201":
+          description: Langganan tercatat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteAlertSubscription'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/bookings:
+    post:
+      operationId: createBookingHold
+      security: []
+      tags: [booking]
+      summary: Hold kuota (reservasi 15 menit)
+      description: |
+        Membuat booking `Held` dan menahan kuota lewat service `ReserveSlot` (ADR-003
+        keputusan 2; invarian `reserved + sold <= effective_capacity` dijaga di MySQL).
+        Satu-satunya endpoint booking yang anonim: respons menerbitkan `access.token`
+        (link token) untuk langkah berikutnya. Hold dilepas otomatis oleh job bila
+        `hold_expires_at` lewat (PRD §6.4: TTL 15 menit).
+
+        Kode galat domain: `quota_exceeded` (sisa kuota tidak cukup), `slot_closed`
+        (closure aktif → `effective_capacity = 0`), `booking_window_closed` (di luar jendela
+        pembukaan/cutoff, dievaluasi dalam `routes.timezone`), `official_link_no_transaction`
+        (tenant `official_link` tidak punya transaksi, AC-35.2), `members_locked`.
+      x-auth: none
+      x-rbac-scopes: [booking.create]
+      x-adr: [ADR-003]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingHoldRequest'
+      responses:
+        "201":
+          description: Hold dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingHoldResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "409":
+          description: >
+            Konflik kuota/status. `code`: `quota_exceeded`, `slot_closed`,
+            `booking_window_closed`, `official_link_no_transaction`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/bookings/{code}/members/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathBookingCode'
+      - $ref: '#/components/parameters/PathMemberId'
+    put:
+      operationId: updateBookingMember
+      security:
+        - bookingLinkToken: []
+      tags: [booking]
+      summary: Isi/ubah data anggota booking
+      description: >
+        Dipakai ketua rombongan atau anggota lewat link bertanda tangan (FR-09: "link pengisian
+        untuk anggota"). Nomor identitas (NIK/paspor) disimpan terenkripsi dan hanya
+        dikembalikan dalam bentuk tersamarkan (`identity_masked`), ADR-005 keputusan 1/2.
+        PUT idempoten: kirim ulang payload yang sama tidak menggandakan perubahan.
+      x-auth: link_token
+      x-rbac-scopes: [booking.member.manage]
+      x-adr: [ADR-005]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberUpdateRequest'
+      responses:
+        "200":
+          description: Anggota tersimpan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingMember'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          description: >
+            Anggota tidak dapat diubah pada status booking ini. `code`: `members_locked`,
+            `conflict`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/bookings/{code}/pay:
+    parameters:
+      - $ref: '#/components/parameters/PathBookingCode'
+    post:
+      operationId: payBooking
+      security:
+        - bookingLinkToken: []
+      tags: [booking]
+      summary: Buat transaksi pembayaran (Snap/VA/QRIS)
+      description: >
+        Membuat transaksi di akun Midtrans **tenant** (BYO merchant, ADR-002 keputusan 2) dan
+        mengembalikan token/redirect. Settlement tidak ditentukan oleh respons ini, tetapi oleh
+        webhook `POST /v1/webhooks/midtrans/{tenant}`: `reserved → sold` dipindahkan dalam satu
+        transaksi dan `ledger_entries` bertambah tepat satu entri (AC-13.3).
+        Kode galat domain: `tenant_not_payment_ready` (kredensial Midtrans tenant belum ada,
+        ADR-002 keputusan 7), `official_link_no_transaction` (AC-35.2), `conflict`
+        (booking bukan pada status yang dapat dibayar).
+      x-auth: link_token
+      x-rbac-scopes: [booking.pay]
+      x-adr: [ADR-002]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayRequest'
+      responses:
+        "200":
+          description: Transaksi pembayaran dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          description: >
+            Tidak dapat dibayar. `code`: `tenant_not_payment_ready`,
+            `official_link_no_transaction`, `conflict`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/bookings/{code}/reschedule:
+    parameters:
+      - $ref: '#/components/parameters/PathBookingCode'
+    post:
+      operationId: rescheduleBooking
+      security:
+        - bookingLinkToken: []
+      tags: [booking]
+      summary: Reschedule booking
+      description: >
+        Memindahkan kuota ke tanggal baru lewat `ReserveSlot` (ADR-003) dan mengevaluasi aturan
+        tenant (§6.4: anggota tidak boleh berubah, satu kali gratis, batas kelompok per hari).
+        Kode galat domain: `reschedule_not_allowed`, `members_locked`, `quota_exceeded`,
+        `slot_closed`.
+      x-auth: link_token
+      x-rbac-scopes: [booking.reschedule]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescheduleRequest'
+      responses:
+        "200":
+          description: Booking setelah reschedule.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          description: >
+            Reschedule ditolak. `code`: `reschedule_not_allowed`, `members_locked`,
+            `quota_exceeded`, `slot_closed`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/bookings/{code}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/PathBookingCode'
+    post:
+      operationId: cancelBooking
+      security:
+        - bookingLinkToken: []
+      tags: [booking]
+      summary: Batalkan booking
+      description: >
+        Membatalkan booking dan melepas kuota; refund (bila diminta) mengikuti policy engine
+        tenant (FR-14, §6.4). Refund closure oleh otoritas selalu penuh atau reschedule.
+        Kode galat domain: `conflict` (status tidak dapat dibatalkan).
+      x-auth: link_token
+      x-rbac-scopes: [booking.cancel]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+      responses:
+        "200":
+          description: Booking setelah pembatalan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/members/{id}/documents:
+    parameters:
+      - $ref: '#/components/parameters/PathMemberId'
+    post:
+      operationId: createDocumentUpload
+      security:
+        - bookingLinkToken: []
+        - sessionCookie: []
+      tags: [documents]
+      summary: Daftarkan dokumen + signed upload URL
+      description: >
+        Membuat baris metadata `documents` lalu mengembalikan signed URL berumur pendek
+        (PUT langsung ke object storage privat). Tidak ada byte dokumen yang melewati API
+        (ADR-005 keputusan 4). Akses di `audit_logs` (ADR-005 keputusan 6). Retensi: byte
+        dihapus N hari setelah tanggal pendakian (ADR-005 keputusan 5).
+      x-auth: link_token_or_session
+      x-rbac-scopes: [documents.upload]
+      x-adr: [ADR-005]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentCreateRequest'
+      responses:
+        "201":
+          description: Metadata dokumen + tujuan unggah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentUpload'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/members/{id}/documents/{document_id}/url:
+    parameters:
+      - $ref: '#/components/parameters/PathMemberId'
+      - $ref: '#/components/parameters/PathDocumentId'
+    get:
+      operationId: getDocumentUrl
+      security:
+        - bookingLinkToken: []
+        - sessionCookie: []
+      tags: [documents]
+      summary: Signed download URL dokumen
+      description: >
+        Mengembalikan signed URL berumur pendek untuk satu dokumen. Setiap pembacaan dicatat di
+        `audit_logs` (siapa/apa/kapan) dan hanya untuk peran berwenang atau pemilik link
+        (ADR-005 keputusan 4/6).
+      x-auth: link_token_or_session
+      x-rbac-scopes: [documents.read]
+      x-adr: [ADR-005]
+      responses:
+        "200":
+          description: Signed URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedDownload'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/webhooks/midtrans/{tenant}:
+    parameters:
+      - $ref: '#/components/parameters/PathTenant'
+    post:
+      operationId: midtransWebhook
+      security: []
+      tags: [payments]
+      summary: Webhook notifikasi Midtrans per tenant
+      description: |
+        **Pengecualian tenancy yang disengaja**: satu-satunya endpoint yang memuat tenant di
+        path (`{tenant}`), sesuai PRD §11 dan ADR-002 keputusan 3, karena URL ini yang
+        didaftarkan Midtrans di akun tenant.
+
+        Alur wajib: (a) resolusi tenant dari path, (b) verifikasi signature dengan server key
+        tenant itu, (c) verifikasi ulang status ke API Midtrans, (d) pemrosesan idempoten
+        (`payments.provider_ref` unik; `ledger_entries` append-only). Duplikat/out-of-order
+        tidak menambah entri buku besar dan tidak memindahkan `reserved → sold` dua kali
+        (AC-13.2/AC-13.3).
+
+        `Idempotency-Key` tidak wajib di sini karena pemanggil adalah Midtrans; idempotensi
+        diturunkan dari `order_id` + signature. Header tetap diterima bila dikirim.
+      x-auth: signed_webhook
+      x-rbac-scopes: [webhook.ingest]
+      x-adr: [ADR-002]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidtransNotification'
+      responses:
+        "200":
+          description: >
+            Diterima dan diproses (atau sengaja diabaikan sebagai duplikat).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookAck'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "403":
+          description: >
+            Signature tidak valid atau tidak ada. Dicatat di log (AC-13.2), tanpa detail kunci.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/quota:
+    get:
+      operationId: listQuotaSlots
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Daftar slot kuota
+      description: >
+        Slot kuota tenant per jalur/tanggal beserta `capacity`, `reserved`, `sold`,
+        `effective_capacity` (closure aktif → 0), dan `version` untuk deteksi perubahan
+        optimistik (ADR-003 keputusan 8).
+      x-auth: session
+      x-rbac-scopes: [console.quota.read]
+      x-adr: [ADR-003]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: route_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-sembalun
+        - name: from
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+        - name: to
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+      responses:
+        "200":
+          description: Daftar slot kuota (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaSlotList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/quota/{route_slug}/{date}:
+    parameters:
+      - $ref: '#/components/parameters/PathRouteSlug'
+      - $ref: '#/components/parameters/PathDate'
+    put:
+      operationId: updateQuotaSlot
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Ubah kapasitas slot kuota
+      description: >
+        Menetapkan `capacity` satu slot. **Ditolak** bila nilai di bawah `reserved + sold` yang
+        berjalan (ADR-003 konsekuensi: menurunkannya diam-diam melanggar invarian); galat
+        `conflict` dengan `details.required_minimum`. Bila `version` dikirim dan tidak cocok →
+        409 (deteksi perubahan optimistik).
+      x-auth: session
+      x-rbac-scopes: [console.quota.write]
+      x-adr: [ADR-003]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaUpdateRequest'
+      responses:
+        "200":
+          description: Slot kuota setelah perubahan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaSlot'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          description: >
+            Kapasitas di bawah `reserved + sold`, atau `version` usang.
+            `code`: `conflict`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/closures:
+    get:
+      operationId: listClosures
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Daftar closure jalur
+      x-auth: session
+      x-rbac-scopes: [console.closure.read]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: route_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-sembalun
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ClosureStatus'
+      responses:
+        "200":
+          description: Daftar closure (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClosureList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createClosure
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Buat closure (Closure Desk)
+      description: >
+        Membuat closure berstatus `proposed`. `source_url` **wajib** (nomor/tautan surat resmi,
+        PRD §6.1/§7.3); usulan otomatis dari berita tetap harus dikonfirmasi manusia sebelum
+        `active`. Mode `cancel_existing` memicu Disruption Case + broadcast (FR-07/FR-14).
+      x-auth: session
+      x-rbac-scopes: [console.closure.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClosureCreateRequest'
+      responses:
+        "201":
+          description: Closure dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Closure'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/closures/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathClosureId'
+    put:
+      operationId: updateClosure
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Konfirmasi/batalkan/selesaikan closure
+      description: >
+        Transisi status closure (`proposed → active|cancelled`, `active → completed`).
+        Perubahan ke `active` adalah konfirmasi manusia yang menghentikan penjualan
+        (`effective_capacity = 0` dibaca dalam transaksi tulis kuota, ADR-003 keputusan 3).
+      x-auth: session
+      x-rbac-scopes: [console.closure.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClosureUpdateRequest'
+      responses:
+        "200":
+          description: Closure setelah perubahan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Closure'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/disruptions:
+    get:
+      operationId: listDisruptions
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Daftar Disruption Case
+      x-auth: session
+      x-rbac-scopes: [console.disruption.read]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DisruptionStatus'
+      responses:
+        "200":
+          description: Daftar disruption case (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisruptionList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/disruptions/{id}/resolve:
+    parameters:
+      - $ref: '#/components/parameters/PathDisruptionId'
+    post:
+      operationId: resolveDisruption
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Selesaikan Disruption Case
+      description: >
+        Mencatat hasil penanganan (`refund`/`reschedule`/`closed`) untuk booking terdampak.
+        Refund oleh otoritas selalu penuh atau reschedule (§6.4, AC-14.2) dan masuk
+        `ledger_entries` append-only (AC-14.3).
+      x-auth: session
+      x-rbac-scopes: [console.disruption.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisruptionResolveRequest'
+      responses:
+        "200":
+          description: Disruption Case setelah penanganan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisruptionCase'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/bookings:
+    get:
+      operationId: listConsoleBookings
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Daftar booking tenant
+      description: >
+        Daftar booking tenant (FR-19). Isolasi tenant: booking tenant lain tidak pernah
+        terlihat dan permintaan lintas tenant mengembalikan 404 (AC-01.1).
+      x-auth: session
+      x-rbac-scopes: [console.booking.read]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: route_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-sembalun
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/BookingStatus'
+        - name: date
+          in: query
+          required: false
+          description: Tanggal pendakian (zona waktu jalur).
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+        - name: q
+          in: query
+          required: false
+          description: Pencarian kode booking atau nama ketua.
+          schema:
+            type: string
+            maxLength: 100
+            example: TG-7QK2M9
+      responses:
+        "200":
+          description: Daftar booking (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsoleBookingList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/bookings/{code}:
+    parameters:
+      - $ref: '#/components/parameters/PathBookingCode'
+    get:
+      operationId: getConsoleBooking
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Detail booking (konsol)
+      description: >
+        Detail booking + pembayaran + entri buku besar. Dipakai AC-01.1 sebagai contoh resource
+        tenant-scoped: akses ke booking tenant lain → 404/403 tanpa kebocoran data.
+      x-auth: session
+      x-rbac-scopes: [console.booking.read]
+      responses:
+        "200":
+          description: Detail booking.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsoleBookingDetail'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/reports:
+    get:
+      operationId: getReport
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Laporan operasional/finansial
+      description: >
+        Menjalankan laporan dalam rentang tanggal (zona waktu jalur). `format=json` mengembalikan
+        baris ter-paginasi; `format=csv` dan `format=pdf` mengembalikan berkas (Excel/PDF, FR-19).
+      x-auth: session
+      x-rbac-scopes: [console.report.read]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: type
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ReportType'
+        - name: from
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+        - name: to
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, csv, pdf]
+            default: json
+        - name: route_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-sembalun
+      responses:
+        "200":
+          description: Baris laporan (JSON) atau berkas (CSV/PDF).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+            text/csv:
+              schema:
+                type: string
+                description: Berkas CSV (UTF-8).
+            application/pdf:
+              schema:
+                type: string
+                contentEncoding: binary
+                description: Berkas PDF.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "409":
+          description: >
+            Format laporan tidak tersedia untuk tipe ini. `code`: `report_format_unsupported`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/rules:
+    get:
+      operationId: listRules
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Daftar requirement rule
+      x-auth: session
+      x-rbac-scopes: [console.rules.read]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: scope
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RuleScope'
+        - name: route_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-sembalun
+      responses:
+        "200":
+          description: Daftar rule (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createRule
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Buat requirement rule
+      description: >
+        Rule = data, bukan kode (PRD §6.1). `source_url` dan `verified_at` **wajib**; rule tanpa
+        sumber atau dengan `verified_at` lebih dari 90 hari diberi badge "perlu verifikasi".
+      x-auth: session
+      x-rbac-scopes: [console.rules.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleCreateRequest'
+      responses:
+        "201":
+          description: Rule dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequirementRule'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/console/rules/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathRuleId'
+    put:
+      operationId: updateRule
+      security:
+        - sessionCookie: []
+      tags: [console]
+      summary: Ubah requirement rule
+      description: >
+        Mengubah severity/params/masa berlaku rule. Hanya peran dengan scope
+        `console.rules.write` (yaitu `tenant_admin`); peran `kasir` menerima 403 (AC-01.2).
+      x-auth: session
+      x-rbac-scopes: [console.rules.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleUpdateRequest'
+      responses:
+        "200":
+          description: Rule setelah perubahan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequirementRule'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/pos/sync:
+    post:
+      operationId: syncPosEvents
+      security:
+        - posDeviceToken: []
+      tags: [pos]
+      summary: Sinkron batch event check-in/out
+      description: >
+        Menerima batch event yang diantre di IndexedDB saat offline. Idempoten per
+        `client_event_id` (UNIQUE, PRD §10.2): duplikat dibuang, bukan digandakan (AC-16.1).
+        Konflik scan diselesaikan **first scan wins** dan dicatat di log; tiket yang sudah
+        dipindai dua kali memicu peringatan, bukan kegagalan (PRD §10.4, ADR-004 keputusan 4).
+        Batch > `maxItems` → 422.
+      x-auth: pos_device
+      x-rbac-scopes: [pos.scan]
+      x-adr: [ADR-004]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PosSyncRequest'
+      responses:
+        "200":
+          description: Hasil sinkron.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PosSyncResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/pos/manifest:
+    get:
+      operationId: getPosManifest
+      security:
+        - posDeviceToken: []
+      tags: [pos]
+      summary: Manifest untuk cache offline POS
+      description: >
+        Snapshot referensi + nama untuk cache POS (ADR-004 keputusan 5). **Tanpa PII**:
+        hanya `member_id`, `booking_code`, `full_name`, `ticket_id`, status in/out — tidak ada
+        NIK/paspor/surat sehat. `manifest_version` naik setiap perubahan; POS membuang cache
+        lama saat versi baru diterima.
+      x-auth: pos_device
+      x-rbac-scopes: [pos.scan]
+      x-adr: [ADR-004]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: route_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-sembalun
+        - name: date
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/LocalDate'
+      responses:
+        "200":
+          description: Manifest (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PosManifest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/pos/revocations:
+    get:
+      operationId: getPosRevocations
+      security:
+        - posDeviceToken: []
+      tags: [pos]
+      summary: Daftar revoke tiket + kunci publik verifikasi
+      description: >
+        Dipakai POS untuk verifikasi QR offline (ADR-004 keputusan 3, PRD §10.4). `ticket_public_key`
+        adalah kunci publik verifikasi tanda tangan tiket; daftar revoke dipakai untuk menolak
+        token yang dibatalkan. POS menandai dirinya *stale* bila `generated_at` terlalu lama.
+      x-auth: pos_device
+      x-rbac-scopes: [pos.scan]
+      x-adr: [ADR-004]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: since
+          in: query
+          required: false
+          description: Ambil revoke setelah waktu ini (sinkron inkremental).
+          schema:
+            $ref: '#/components/schemas/DateTime'
+      responses:
+        "200":
+          description: Daftar revoke (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PosRevocationList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/tenants:
+    get:
+      operationId: listTenants
+      security:
+        - platformAdminToken: []
+      tags: [admin]
+      summary: Daftar tenant (lintas-tenant)
+      description: >
+        Akses super admin lintas-tenant — bypass scope yang disengaja dan tercatat di ADR-001
+        keputusan 5.
+      x-auth: platform_admin
+      x-rbac-scopes: [admin.tenants.read]
+      x-adr: [ADR-001]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TenantStatus'
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TenantType'
+      responses:
+        "200":
+          description: Daftar tenant (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: createTenant
+      security:
+        - platformAdminToken: []
+      tags: [admin]
+      summary: Buat tenant
+      description: >
+        Onboarding tenant tanpa sentuhan kode (FR-01). Tenant baru selalu butuh langkah
+        operasional tambahan: mengisi kredensial Midtrans sendiri sebelum dapat menjual tiket
+        (`payment_ready`, ADR-002 konsekuensi).
+      x-auth: platform_admin
+      x-rbac-scopes: [admin.tenants.write]
+      x-adr: [ADR-001, ADR-002]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreateRequest'
+      responses:
+        "201":
+          description: Tenant dibuat.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "409":
+          description: Slug tenant sudah dipakai. `code` = `conflict`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/tenants/{slug}:
+    parameters:
+      - $ref: '#/components/parameters/PathSlug'
+    get:
+      operationId: getTenant
+      security:
+        - platformAdminToken: []
+      tags: [admin]
+      summary: Detail tenant
+      x-auth: platform_admin
+      x-rbac-scopes: [admin.tenants.read]
+      responses:
+        "200":
+          description: Detail tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      operationId: updateTenant
+      security:
+        - platformAdminToken: []
+      tags: [admin]
+      summary: Ubah status/kesiapan bayar tenant
+      description: >
+        Menangguhkan/mengaktifkan tenant dan menandai kesiapan bayar. Mematikan
+        `payment_ready` membuat `POST /v1/bookings/{code}/pay` menolak dengan
+        `tenant_not_payment_ready` (ADR-002 keputusan 7).
+      x-auth: platform_admin
+      x-rbac-scopes: [admin.tenants.write]
+      x-adr: [ADR-002]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantUpdateRequest'
+      responses:
+        "200":
+          description: Tenant setelah perubahan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/billing:
+    get:
+      operationId: listBillingInvoices
+      security:
+        - platformAdminToken: []
+      tags: [admin]
+      summary: Invoice bulanan platform (P3)
+      description: >
+        Fee platform ditagih terpisah sebagai invoice bulanan, bukan potongan dari transaksi
+        tenant (ADR-002 keputusan 6). Fase P3 (FR-28): kontrak disiapkan, implementasi menyusul.
+      x-auth: platform_admin
+      x-rbac-scopes: [admin.billing.read]
+      x-adr: [ADR-002]
+      x-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: tenant_slug
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rinjani-basecamp
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/InvoiceStatus'
+      responses:
+        "200":
+          description: Daftar invoice (ter-paginasi).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoiceList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: trailgate_session
+      description: >
+        Sesi konsol/tenant (cookie HttpOnly, sesi pendek). Peran ditentukan RBAC tenant;
+        tenant admin wajib MFA (PRD §13, AC-01.3).
+    bookingLinkToken:
+      type: http
+      scheme: bearer
+      description: >
+        Token bertanda tangan berumur pendek untuk satu booking (dibuat saat hold, dibagikan
+        ke ketua/anggota). Bukan akun pengguna.
+    posDeviceToken:
+      type: http
+      scheme: bearer
+      description: Token perangkat POS per tenant (ADR-004 keputusan 7); hanya untuk scope `pos.scan`.
+    platformAdminToken:
+      type: http
+      scheme: bearer
+      description: Token super admin platform (lintas tenant; bypass scope tercatat, ADR-001 keputusan 5).
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >
+        Kunci idempotensi unik per tenant + per operasi (PRD §10.3/§11). Kirim ulang key yang
+        sama untuk retry jaringan: server mengembalikan hasil yang sama, bukan membuat
+        resource/charge kedua (AC-27.3). Disimpan 24 jam.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        example: 8f14e45fceea167a5a36dedd4bea2543
+    IdempotencyKeyOptional:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >
+        Opsional pada webhook Midtrans: pemanggil adalah penyedia pembayaran, bukan klien kita.
+        Idempotensi diturunkan dari `order_id` + signature dan `payments.provider_ref` unik
+        (ADR-002 keputusan 3/4).
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 255
+        example: midtrans-order-20261231-0001
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Halaman (mulai 1).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        default: 1
+        example: 1
+    PerPage:
+      name: per_page
+      in: query
+      required: false
+      description: Jumlah baris per halaman (maksimum 100).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+    PathSlug:
+      name: slug
+      in: path
+      required: true
+      description: Slug resource (jalur atau tenant), huruf kecil dan tanda hubung.
+      schema:
+        type: string
+        pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+        minLength: 2
+        maxLength: 80
+        example: rinjani-sembalun
+    PathRouteSlug:
+      name: route_slug
+      in: path
+      required: true
+      description: Slug jalur.
+      schema:
+        type: string
+        pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+        minLength: 2
+        maxLength: 80
+        example: rinjani-sembalun
+    PathDate:
+      name: date
+      in: path
+      required: true
+      description: Tanggal slot dalam zona waktu jalur (`routes.timezone`, AC-26.4).
+      schema:
+        $ref: '#/components/schemas/LocalDate'
+    PathBookingCode:
+      name: code
+      in: path
+      required: true
+      description: Kode booking unik (PRD §10.2).
+      schema:
+        type: string
+        pattern: '^[A-Z0-9-]{6,20}$'
+        example: TG-7QK2M9
+    PathMemberId:
+      name: id
+      in: path
+      required: true
+      description: ID anggota booking. Identitas penuh (NIK/paspor) tidak pernah dipakai untuk pencarian (ADR-005 keputusan 3).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 36
+        example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+    PathDocumentId:
+      name: document_id
+      in: path
+      required: true
+      description: ID baris metadata dokumen.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 36
+        example: 018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81
+    PathClosureId:
+      name: id
+      in: path
+      required: true
+      description: ID closure.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 42
+    PathDisruptionId:
+      name: id
+      in: path
+      required: true
+      description: ID Disruption Case.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 108
+    PathRuleId:
+      name: id
+      in: path
+      required: true
+      description: ID requirement rule.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 7
+    PathTenant:
+      name: tenant
+      in: path
+      required: true
+      description: >
+        Slug tenant pada webhook Midtrans — pengecualian tenancy yang diwajibkan PRD §11 dan
+        ADR-002 keputusan 3 (URL ini didaftarkan di akun Midtrans tenant).
+      schema:
+        type: string
+        pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+        minLength: 2
+        maxLength: 80
+        example: rinjani-basecamp
+  headers:
+    RetryAfter:
+      description: Detik sebelum permintaan berikutnya boleh dikirim.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        example: 60
+  responses:
+    BadRequest:
+      description: Permintaan tidak dapat diproses. `code` = `validation_failed`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Kredensial tidak ada/invalid/kedaluwarsa. `code` = `unauthorized`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: >
+        Terautentikasi tetapi tidak berwenang (scope RBAC tidak dimiliki). `code` = `forbidden`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: >
+        Resource tidak ada — termasuk resource milik tenant lain (isolasi tenant tidak boleh
+        membocorkan keberadaan data, AC-01.1). `code` = `not_found`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Konflik status/kuota/idempotensi. `code` = `conflict`, `quota_exceeded`, `slot_closed`, `idempotency_conflict`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: Payload valid secara sintaks tetapi melanggar aturan domain. `code` = `validation_failed`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: >
+        Melewati rate limit per IP/akun/tenant (PRD §11/§13, AC-27.1). `code` = `rate_limited`.
+        Selama pembukaan kuota, permintaan booking boleh masuk waiting room; klien menghormati
+        `Retry-After`.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: Galat tak terduga. `code` = `internal_error`. Detail teknis tidak dibocorkan.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      description: Amplop galat standar (PRD §11). Selalu `{code, message, details}`.
+      required: [code, message]
+      additionalProperties: false
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Pesan manusiawi (Bahasa Indonesia) untuk ditampilkan/di-log.
+        details:
+          type: [object, "null"]
+          additionalProperties: true
+          description: Detail terstruktur (mis. daftar field gagal validasi). `null` bila tidak ada.
+      example:
+        code: quota_exceeded
+        message: Sisa kuota tidak cukup untuk tanggal yang diminta.
+        details:
+          route_slug: rinjani-sembalun
+          date: '2026-12-31'
+          remaining: 3
+          requested: 5
+    ErrorCode:
+      type: string
+      description: Daftar tertutup kode galat.
+      enum:
+        - validation_failed
+        - unauthorized
+        - forbidden
+        - not_found
+        - conflict
+        - idempotency_conflict
+        - quota_exceeded
+        - slot_closed
+        - booking_window_closed
+        - official_link_no_transaction
+        - tenant_not_payment_ready
+        - reschedule_not_allowed
+        - members_locked
+        - webhook_signature_invalid
+        - rate_limited
+        - payload_too_large
+        - report_format_unsupported
+        - internal_error
+      example: rate_limited
+    PageMeta:
+      type: object
+      description: Metadata pagination (satu-satunya bentuk `meta` yang dipakai kontrak ini).
+      required: [page, per_page, total, total_pages]
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 1
+        per_page:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+          example: 20
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+          example: 1
+        total_pages:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 1
+      example:
+        page: 1
+        per_page: 20
+        total: 1
+        total_pages: 1
+    Money:
+      type: integer
+      format: int64
+      minimum: 0
+      x-money: true
+      description: >
+        Nominal dalam **integer rupiah** (tanpa desimal, tanpa pecahan sen). `float`/`double`
+        dilarang (ADR-002 keputusan 9, AGENTS.md aturan 6). MVP tidak multi-currency.
+      example: 350000
+    DateTime:
+      type: string
+      format: date-time
+      description: >
+        Timestamp RFC 3339 dengan offset eksplisit. Disimpan UTC; jadwal/jendela kuota
+        dievaluasi dalam zona waktu jalur (`routes.timezone`, mis. `Asia/Makassar`, AC-26.4).
+      example: '2026-12-31T01:00:00+08:00'
+    LocalDate:
+      type: string
+      format: date
+      description: >
+        Tanggal kalender dalam zona waktu jalur (`routes.timezone`, AC-26.4). `2026-12-31`
+        berarti 31 Desember 2026 di `Asia/Makassar` untuk jalur Rinjani, bukan di zona server.
+      example: '2026-12-31'
+    Timezone:
+      type: string
+      pattern: '^(UTC|[A-Za-z_]+(/[A-Za-z_+-]+)+)$'
+      description: >
+        Zona waktu IANA jalur (`routes.timezone`), dipakai untuk semua evaluasi tanggal/jam
+        jalur itu (PRD §8, AC-26.4).
+      example: Asia/Makassar
+    RouteStatusValue:
+      type: string
+      enum: [open, closed, partially_closed, unknown]
+      description: Status operasional jalur.
+      example: open
+    RequirementRuleType:
+      type: string
+      description: Tipe aturan yang didukung rule engine (PRD §6.2).
+      enum:
+        - min_age_unaccompanied
+        - minor_requires_guardian_consent
+        - beginner_requires_guide
+        - health_cert_max_age_hours
+        - informed_consent_required
+        - insurance_info_required
+        - guide_ratio
+        - porter_ratio
+        - max_group_size
+        - min_group_size
+        - booking_window_days
+        - booking_cutoff_hours
+        - max_stay_nights
+        - required_documents
+        - reschedule_policy
+        - refund_policy
+        - quota_open_schedule
+      example: health_cert_max_age_hours
+    RuleScope:
+      type: string
+      enum: [tenant, mountain, route]
+      description: Cakupan rule (PRD §6.2).
+      example: route
+    RuleSeverity:
+      type: string
+      enum: [block, warn]
+      description: Efek hasil evaluasi (PRD §6.1).
+      example: block
+    BookingStatus:
+      type: string
+      description: Status pada state machine booking (PRD §7.1).
+      enum:
+        - Draft
+        - Held
+        - PendingPayment
+        - Paid
+        - NeedsAction
+        - Confirmed
+        - CheckedIn
+        - CheckedOut
+        - Overdue
+        - Completed
+        - Rescheduled
+        - Disrupted
+        - Cancelled
+        - Refunded
+        - Expired
+      example: Held
+    DocumentType:
+      type: string
+      enum: [health_cert, guardian_consent, consent, insurance_proof]
+      description: Jenis dokumen (FR-10).
+      example: health_cert
+    DocumentStatus:
+      type: string
+      enum: [pending_upload, uploaded, verified, rejected]
+      example: pending_upload
+    ClosureMode:
+      type: string
+      enum: [block_new_bookings, cancel_existing, partial_hours, partial_route]
+      description: Mode closure (PRD §6.4).
+      example: block_new_bookings
+    ClosureStatus:
+      type: string
+      enum: [proposed, active, cancelled, completed]
+      example: active
+    DisruptionStatus:
+      type: string
+      enum: [open, in_progress, resolved]
+      example: in_progress
+    TenantType:
+      type: string
+      enum: [saas, template, official_link]
+      description: Tipe tenant (PRD §4.1).
+      example: saas
+    TenantStatus:
+      type: string
+      enum: [pending, active, suspended]
+      example: active
+    InvoiceStatus:
+      type: string
+      enum: [draft, issued, paid, void]
+      example: issued
+    ReportType:
+      type: string
+      enum: [bookings, revenue, checkins, closure_impact]
+      example: bookings
+    PaymentStatus:
+      type: string
+      enum: [pending, settled, expired, failed, refunded]
+      example: settled
+    PaymentChannel:
+      type: string
+      enum: [snap, va, qris]
+      description: Kanal pembayaran Midtrans (FR-13, PRD §12).
+      example: qris
+    LedgerEntryType:
+      type: string
+      enum: [payment, refund, platform_fee]
+      description: Jenis entri buku besar append-only (PRD §10.2, ADR-002 keputusan 6).
+      example: payment
+    RequirementRule:
+      type: object
+      description: Satu aturan persyaratan jalur. Wajib bersumber (PRD §6.1).
+      required:
+        [id, scope, type, params, severity, source_url, verified_at, effective_from]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 7
+        scope:
+          $ref: '#/components/schemas/RuleScope'
+        route_slug:
+          type: [string, "null"]
+          description: Terisi bila `scope` = `route`.
+          example: rinjani-sembalun
+        type:
+          $ref: '#/components/schemas/RequirementRuleType'
+        params:
+          type: object
+          additionalProperties: true
+          description: Parameter aturan (bentuknya bergantung `type`).
+          example:
+            hours: 24
+        severity:
+          $ref: '#/components/schemas/RuleSeverity'
+        source_url:
+          type: string
+          format: uri
+          description: Sumber aturan (wajib; PRD §6.1/AGENTS.md aturan 4).
+          example: https://rinjani.example.go.id/sop-pendakian-2026
+        source_ref:
+          type: [string, "null"]
+          description: Nomor surat/dokumen resmi.
+          example: 'SK.42/BTNGP/2026'
+        verified_at:
+          $ref: '#/components/schemas/LocalDate'
+        effective_from:
+          $ref: '#/components/schemas/LocalDate'
+        effective_to:
+          type: [string, "null"]
+          format: date
+          description: Batas akhir berlaku (null = tidak ada batas).
+          example: '2027-06-30'
+        note:
+          type: [string, "null"]
+          maxLength: 300
+          example: VERIFIKASI ke SOP resmi terbaru.
+      example:
+        id: 7
+        scope: route
+        route_slug: rinjani-sembalun
+        type: health_cert_max_age_hours
+        params:
+          hours: 24
+        severity: block
+        source_url: https://rinjani.example.go.id/sop-pendakian-2026
+        source_ref: SK.42/BTNGP/2026
+        verified_at: '2026-11-01'
+        effective_from: '2026-11-01'
+        effective_to: null
+        note: null
+    AvailabilitySummary:
+      type: object
+      description: Ringkasan ketersediaan untuk katalog jalur.
+      required: [next_available_date, remaining_next_7_days]
+      additionalProperties: false
+      properties:
+        next_available_date:
+          type: [string, "null"]
+          format: date
+          description: Tanggal terdekat dengan sisa kuota (null bila tidak ada).
+          example: '2026-12-31'
+        remaining_next_7_days:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Total sisa kuota 7 hari ke depan (zona waktu jalur).
+          example: 42
+      example:
+        next_available_date: '2026-12-31'
+        remaining_next_7_days: 42
+    Route:
+      type: object
+      description: Jalur pendakian tenant.
+      required:
+        [slug, name, mountain_slug, mountain_name, timezone, max_group_size, status,
+         booking_enabled, availability_summary]
+      additionalProperties: false
+      properties:
+        slug:
+          type: string
+          example: rinjani-sembalun
+        name:
+          type: string
+          example: Rinjani — Sembalun
+        mountain_slug:
+          type: string
+          example: rinjani
+        mountain_name:
+          type: string
+          example: Gunung Rinjani
+        timezone:
+          $ref: '#/components/schemas/Timezone'
+        max_group_size:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+          example: 12
+        status:
+          $ref: '#/components/schemas/RouteStatusValue'
+        booking_enabled:
+          type: boolean
+          description: >
+            `false` untuk tenant `official_link` (tanpa transaksi, AC-35.2) atau jalur yang
+            ditutup untuk booking baru.
+          example: true
+        deep_link_url:
+          type: [string, "null"]
+          format: uri
+          description: Deep-link ke sistem booking resmi (Official Link Mode, FR-35).
+          example: null
+        official_system_name:
+          type: [string, "null"]
+          description: Nama sistem resmi yang ditautkan (mis. eRinjani).
+          example: null
+        geojson:
+          type: [object, "null"]
+          additionalProperties: true
+          description: GeoJSON jalur (FR-04).
+          example: null
+        last_status_check:
+          oneOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+          description: Kapan status jalur terakhir diverifikasi.
+          example: '2026-11-24T09:15:00+08:00'
+        requirements:
+          type: array
+          description: Rule persyaratan aktif untuk jalur ini.
+          items:
+            $ref: '#/components/schemas/RequirementRule'
+        availability_summary:
+          $ref: '#/components/schemas/AvailabilitySummary'
+      example:
+        slug: rinjani-sembalun
+        name: Rinjani — Sembalun
+        mountain_slug: rinjani
+        mountain_name: Gunung Rinjani
+        timezone: Asia/Makassar
+        max_group_size: 12
+        status: open
+        booking_enabled: true
+        deep_link_url: null
+        official_system_name: null
+        geojson: null
+        last_status_check: '2026-11-24T09:15:00+08:00'
+        requirements:
+          - id: 7
+            scope: route
+            route_slug: rinjani-sembalun
+            type: health_cert_max_age_hours
+            params:
+              hours: 24
+            severity: block
+            source_url: https://rinjani.example.go.id/sop-pendakian-2026
+            source_ref: SK.42/BTNGP/2026
+            verified_at: '2026-11-01'
+            effective_from: '2026-11-01'
+            effective_to: null
+            note: null
+        availability_summary:
+          next_available_date: '2026-12-31'
+          remaining_next_7_days: 42
+    RouteList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Route'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - slug: rinjani-sembalun
+            name: Rinjani — Sembalun
+            mountain_slug: rinjani
+            mountain_name: Gunung Rinjani
+            timezone: Asia/Makassar
+            max_group_size: 12
+            status: open
+            booking_enabled: true
+            deep_link_url: null
+            official_system_name: null
+            geojson: null
+            last_status_check: '2026-11-24T09:15:00+08:00'
+            requirements: []
+            availability_summary:
+              next_available_date: '2026-12-31'
+              remaining_next_7_days: 42
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    RouteStatus:
+      type: object
+      description: Status buka/tutup jalur dengan sumber dan waktu verifikasi.
+      required: [route_slug, status, checked_at, source]
+      additionalProperties: false
+      properties:
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        status:
+          $ref: '#/components/schemas/RouteStatusValue'
+        reason:
+          type: [string, "null"]
+          maxLength: 500
+          example: Penutupan sementara karena cuaca ekstrem.
+        source:
+          type: string
+          enum: [official_letter, operator, bmkg, manual]
+          description: Asal informasi status.
+          example: official_letter
+        source_url:
+          type: [string, "null"]
+          format: uri
+          description: Tautan sumber (wajib bila `source` = `official_letter`).
+          example: https://rinjani.example.go.id/pengumuman-penutupan
+        source_ref:
+          type: [string, "null"]
+          example: 'SM.15/BTNGP/2026'
+        checked_at:
+          $ref: '#/components/schemas/DateTime'
+        next_closure:
+          oneOf:
+            - $ref: '#/components/schemas/Closure'
+            - type: 'null'
+          description: Closure terjadwal berikutnya, bila ada.
+          example: null
+      example:
+        route_slug: rinjani-sembalun
+        status: closed
+        reason: Penutupan sementara karena karhutla.
+        source: official_letter
+        source_url: https://rinjani.example.go.id/pengumuman-penutupan
+        source_ref: SM.15/BTNGP/2026
+        checked_at: '2026-11-24T09:15:00+08:00'
+        next_closure: null
+    AvailabilityDay:
+      type: object
+      description: Ketersediaan satu tanggal.
+      required: [date, capacity, effective_capacity, reserved, sold, remaining, status]
+      additionalProperties: false
+      properties:
+        date:
+          $ref: '#/components/schemas/LocalDate'
+        capacity:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Kapasitas dasar slot.
+          example: 300
+        effective_capacity:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Kapasitas efektif (0 bila closure aktif; dihitung service, bukan klien).
+          example: 300
+        reserved:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Kuota tertahan hold yang belum dibayar.
+          example: 30
+        sold:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Kuota terjual.
+          example: 228
+        remaining:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Sisa kuota yang masih bisa dijual.
+          example: 42
+        status:
+          type: string
+          enum: [open, full, closed, booking_closed]
+          description: >
+            `closed` = closure aktif; `full` = kuota habis; `booking_closed` = di luar jendela
+            pembukaan/cutoff (evaluasi zona waktu jalur, AC-26.4).
+          example: open
+      example:
+        date: '2026-12-31'
+        capacity: 300
+        effective_capacity: 300
+        reserved: 30
+        sold: 228
+        remaining: 42
+        status: open
+    AvailabilityResponse:
+      type: object
+      description: Ketersediaan kuota untuk rentang tanggal.
+      required: [route_slug, timezone, from, to, days, generated_at]
+      additionalProperties: false
+      properties:
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        timezone:
+          $ref: '#/components/schemas/Timezone'
+        from:
+          $ref: '#/components/schemas/LocalDate'
+        to:
+          $ref: '#/components/schemas/LocalDate'
+        days:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AvailabilityDay'
+        generated_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        route_slug: rinjani-sembalun
+        timezone: Asia/Makassar
+        from: '2026-12-31'
+        to: '2026-12-31'
+        days:
+          - date: '2026-12-31'
+            capacity: 300
+            effective_capacity: 300
+            reserved: 30
+            sold: 228
+            remaining: 42
+            status: open
+        generated_at: '2026-11-24T09:15:00+08:00'
+    BookingLeader:
+      type: object
+      description: Data ketua rombongan pada saat hold.
+      required: [full_name, identity_type, identity_number, is_foreign, birth_date, phone, email]
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 120
+          example: Bayu Pratama
+        identity_type:
+          type: string
+          enum: [nik, passport]
+          description: NIK (WNI) atau paspor (WNA) — `is_foreign` harus konsisten.
+          example: nik
+        identity_number:
+          type: string
+          minLength: 6
+          maxLength: 32
+          description: >
+            Disimpan terenkripsi (ADR-005 keputusan 1) dan tidak dapat di-query; jangan pernah
+            dikembalikan dalam plaintext oleh API.
+          example: '3201234567890001'
+        is_foreign:
+          type: boolean
+          example: false
+        birth_date:
+          $ref: '#/components/schemas/LocalDate'
+        phone:
+          type: string
+          pattern: '^\+[1-9][0-9]{6,14}$'
+          example: '+628123456789'
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: bayu@example.com
+      example:
+        full_name: Bayu Pratama
+        identity_type: nik
+        identity_number: '3201234567890001'
+        is_foreign: false
+        birth_date: '1994-05-17'
+        phone: '+628123456789'
+        email: bayu@example.com
+    BookingItemRequest:
+      type: object
+      description: Item tambahan yang diminta saat hold (FR-12).
+      required: [type, quantity]
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum: [guide, porter, gear_rental, transport, homestay, insurance]
+          example: porter
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 50
+          example: 2
+      example:
+        type: porter
+        quantity: 2
+    BookingHoldRequest:
+      type: object
+      description: Permintaan hold kuota.
+      required: [route_slug, date, party_size, leader]
+      additionalProperties: false
+      properties:
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        date:
+          $ref: '#/components/schemas/LocalDate'
+        party_size:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 30
+          description: Jumlah pendaki (termasuk ketua).
+          example: 5
+        leader:
+          $ref: '#/components/schemas/BookingLeader'
+        items:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/BookingItemRequest'
+        note:
+          type: [string, "null"]
+          maxLength: 500
+          example: null
+      example:
+        route_slug: rinjani-sembalun
+        date: '2026-12-31'
+        party_size: 5
+        leader:
+          full_name: Bayu Pratama
+          identity_type: nik
+          identity_number: '3201234567890001'
+          is_foreign: false
+          birth_date: '1994-05-17'
+          phone: '+628123456789'
+          email: bayu@example.com
+        items:
+          - type: porter
+            quantity: 2
+        note: null
+    BookingMember:
+      type: object
+      description: Anggota rombongan (identitas tersamarkan saat dibaca).
+      required: [id, full_name, identity_type, identity_masked, is_foreign, birth_date]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        full_name:
+          type: string
+          example: Bayu Pratama
+        identity_type:
+          type: string
+          enum: [nik, passport]
+          example: nik
+        identity_masked:
+          type: string
+          description: Identitas tersamarkan untuk tampilan (ADR-005 konsekuensi).
+          example: '3201••••••••0001'
+        is_foreign:
+          type: boolean
+          example: false
+        birth_date:
+          $ref: '#/components/schemas/LocalDate'
+        phone:
+          type: [string, "null"]
+          example: '+628123456789'
+        email:
+          type: [string, "null"]
+          format: email
+          example: bayu@example.com
+      example:
+        id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        full_name: Bayu Pratama
+        identity_type: nik
+        identity_masked: '3201••••••••0001'
+        is_foreign: false
+        birth_date: '1994-05-17'
+        phone: '+628123456789'
+        email: bayu@example.com
+    MemberUpdateRequest:
+      type: object
+      description: >
+        Isi/ubah data anggota. Minimal satu field harus dikirim. `identity_number` plaintext
+        hanya lewat TLS dan disimpan terenkripsi (ADR-005).
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 120
+          example: Bayu Pratama
+        identity_type:
+          type: string
+          enum: [nik, passport]
+          example: nik
+        identity_number:
+          type: string
+          minLength: 6
+          maxLength: 32
+          example: '3201234567890001'
+        is_foreign:
+          type: boolean
+          example: false
+        birth_date:
+          $ref: '#/components/schemas/LocalDate'
+        phone:
+          type: string
+          pattern: '^\+[1-9][0-9]{6,14}$'
+          example: '+628123456789'
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: bayu@example.com
+        emergency_contact:
+          type: object
+          additionalProperties: false
+          required: [name, phone, relation]
+          properties:
+            name:
+              type: string
+              maxLength: 120
+              example: Sri Handayani
+            phone:
+              type: string
+              pattern: '^\+[1-9][0-9]{6,14}$'
+              example: '+628987654321'
+            relation:
+              type: string
+              maxLength: 40
+              example: Istri
+          example:
+            name: Sri Handayani
+            phone: '+628987654321'
+            relation: Istri
+      example:
+        full_name: Bayu Pratama
+        identity_type: nik
+        identity_number: '3201234567890001'
+        is_foreign: false
+        birth_date: '1994-05-17'
+        phone: '+628123456789'
+        email: bayu@example.com
+        emergency_contact:
+          name: Sri Handayani
+          phone: '+628987654321'
+          relation: Istri
+    PayRequest:
+      type: object
+      description: Permintaan pembuatan transaksi pembayaran.
+      required: [channel]
+      additionalProperties: false
+      properties:
+        channel:
+          $ref: '#/components/schemas/PaymentChannel'
+      example:
+        channel: snap
+    RescheduleRequest:
+      type: object
+      description: Permintaan reschedule (anggota tidak boleh berubah, §6.4).
+      required: [new_date]
+      additionalProperties: false
+      properties:
+        new_date:
+          $ref: '#/components/schemas/LocalDate'
+        reason:
+          type: [string, "null"]
+          maxLength: 300
+          example: Cuaca buruk pada tanggal semula.
+      example:
+        new_date: '2027-01-15'
+        reason: Cuaca buruk pada tanggal semula.
+    CancelRequest:
+      type: object
+      description: Permintaan pembatalan.
+      required: [reason]
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 300
+          example: Rombongan batal berangkat.
+        refund_requested:
+          type: boolean
+          default: true
+          description: Refund mengikuti policy engine tenant (FR-14).
+          example: true
+      example:
+        reason: Rombongan batal berangkat.
+        refund_requested: true
+    PaymentIntent:
+      type: object
+      description: Transaksi pembayaran Midtrans milik tenant (BYO merchant, ADR-002).
+      required: [booking_code, provider, channel, amount, expires_at]
+      additionalProperties: false
+      properties:
+        booking_code:
+          type: string
+          example: TG-7QK2M9
+        provider:
+          type: string
+          const: midtrans
+          example: midtrans
+        channel:
+          $ref: '#/components/schemas/PaymentChannel'
+        amount:
+          $ref: '#/components/schemas/Money'
+        snap_token:
+          type: [string, "null"]
+          description: Token Snap (bila `channel = snap`).
+          example: snap-token-1a2b3c
+        redirect_url:
+          type: [string, "null"]
+          format: uri
+          example: https://app.sandbox.midtrans.com/snap/v3/redirection/1a2b3c
+        expires_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        booking_code: TG-7QK2M9
+        provider: midtrans
+        channel: snap
+        amount: 350000
+        snap_token: snap-token-1a2b3c
+        redirect_url: https://app.sandbox.midtrans.com/snap/v3/redirection/1a2b3c
+        expires_at: '2026-11-24T10:05:00+08:00'
+    Booking:
+      type: object
+      description: Booking tenant (state machine PRD §7.1).
+      required:
+        [code, route_slug, date, status, party_size, total_amount, created_at, updated_at, members]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          example: TG-7QK2M9
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        date:
+          $ref: '#/components/schemas/LocalDate'
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        party_size:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 5
+        hold_expires_at:
+          type: [string, "null"]
+          format: date-time
+          description: Batas hold (null bila tidak lagi dalam status `Held`/`PendingPayment`).
+          example: '2026-11-24T09:45:00+08:00'
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingMember'
+      example:
+        code: TG-7QK2M9
+        route_slug: rinjani-sembalun
+        date: '2026-12-31'
+        status: Held
+        party_size: 5
+        hold_expires_at: '2026-11-24T09:45:00+08:00'
+        total_amount: 350000
+        created_at: '2026-11-24T09:30:00+08:00'
+        updated_at: '2026-11-24T09:30:00+08:00'
+        members:
+          - id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+            full_name: Bayu Pratama
+            identity_type: nik
+            identity_masked: '3201••••••••0001'
+            is_foreign: false
+            birth_date: '1994-05-17'
+            phone: '+628123456789'
+            email: bayu@example.com
+    BookingAccess:
+      type: object
+      description: Link token untuk mengelola booking ini (bagikan ke ketua; tiap anggota dapat link sendiri).
+      required: [token, expires_at, manage_url]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          description: Token bearer bertanda tangan (jangan di-log).
+          example: eyJhbGciOiJFZERTQSJ9.link-token-contoh
+        expires_at:
+          $ref: '#/components/schemas/DateTime'
+        manage_url:
+          type: string
+          format: uri
+          example: https://demo.trailgate.id/booking/TG-7QK2M9?t=link-token-contoh
+      example:
+        token: eyJhbGciOiJFZERTQSJ9.link-token-contoh
+        expires_at: '2026-12-30T23:59:59+08:00'
+        manage_url: https://demo.trailgate.id/booking/TG-7QK2M9?t=link-token-contoh
+    BookingHoldResponse:
+      type: object
+      description: Hasil hold kuota beserta akses pengelolaan.
+      required: [booking, access]
+      additionalProperties: false
+      properties:
+        booking:
+          $ref: '#/components/schemas/Booking'
+        access:
+          $ref: '#/components/schemas/BookingAccess'
+      example:
+        booking:
+          code: TG-7QK2M9
+          route_slug: rinjani-sembalun
+          date: '2026-12-31'
+          status: Held
+          party_size: 5
+          hold_expires_at: '2026-11-24T09:45:00+08:00'
+          total_amount: 350000
+          created_at: '2026-11-24T09:30:00+08:00'
+          updated_at: '2026-11-24T09:30:00+08:00'
+          members:
+            - id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+              full_name: Bayu Pratama
+              identity_type: nik
+              identity_masked: '3201••••••••0001'
+              is_foreign: false
+              birth_date: '1994-05-17'
+              phone: '+628123456789'
+              email: bayu@example.com
+        access:
+          token: eyJhbGciOiJFZERTQSJ9.link-token-contoh
+          expires_at: '2026-12-30T23:59:59+08:00'
+          manage_url: https://demo.trailgate.id/booking/TG-7QK2M9?t=link-token-contoh
+    DocumentCreateRequest:
+      type: object
+      description: Pendaftaran dokumen sebelum unggah byte ke object storage privat.
+      required: [type, filename, content_type, size_bytes]
+      additionalProperties: false
+      properties:
+        type:
+          $ref: '#/components/schemas/DocumentType'
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: surat-sehat-bayu.pdf
+        content_type:
+          type: string
+          enum: [application/pdf, image/jpeg, image/png]
+          example: application/pdf
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10485760
+          example: 248320
+      example:
+        type: health_cert
+        filename: surat-sehat-bayu.pdf
+        content_type: application/pdf
+        size_bytes: 248320
+    Document:
+      type: object
+      description: Metadata dokumen (byte ada di object storage privat, ADR-005 keputusan 4).
+      required: [id, member_id, type, filename, content_type, size_bytes, status, object_key]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: 018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81
+        member_id:
+          type: string
+          example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        type:
+          $ref: '#/components/schemas/DocumentType'
+        filename:
+          type: string
+          example: surat-sehat-bayu.pdf
+        content_type:
+          type: string
+          example: application/pdf
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+          example: 248320
+        status:
+          $ref: '#/components/schemas/DocumentStatus'
+        object_key:
+          type: string
+          description: Path di disk privat (namespace `tenants/{id}/documents/...`).
+          example: tenants/12/documents/018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81.pdf
+        uploaded_at:
+          type: [string, "null"]
+          format: date-time
+          example: '2026-11-24T09:40:00+08:00'
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+          description: Kapan dokumen dihapus oleh job retensi (ADR-005 keputusan 5).
+          example: '2027-01-30T00:00:00+08:00'
+      example:
+        id: 018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81
+        member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        type: health_cert
+        filename: surat-sehat-bayu.pdf
+        content_type: application/pdf
+        size_bytes: 248320
+        status: pending_upload
+        object_key: tenants/12/documents/018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81.pdf
+        uploaded_at: null
+        expires_at: '2027-01-30T00:00:00+08:00'
+    SignedUpload:
+      type: object
+      description: Tujuan unggah berumur pendek (PUT langsung ke object storage).
+      required: [url, method, expires_at]
+      additionalProperties: false
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Signed URL berumur pendek; jangan di-log.
+          example: https://storage.example.id/private/tenants/12/documents/018f3a1e.pdf?X-Amz-Signature=contoh
+        method:
+          type: string
+          enum: [PUT]
+          example: PUT
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Header wajib saat mengunggah.
+          example:
+            Content-Type: application/pdf
+        expires_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        url: https://storage.example.id/private/tenants/12/documents/018f3a1e.pdf?X-Amz-Signature=contoh
+        method: PUT
+        headers:
+          Content-Type: application/pdf
+        expires_at: '2026-11-24T09:45:00+08:00'
+    DocumentUpload:
+      type: object
+      description: Metadata dokumen + tujuan unggah.
+      required: [document, upload]
+      additionalProperties: false
+      properties:
+        document:
+          $ref: '#/components/schemas/Document'
+        upload:
+          $ref: '#/components/schemas/SignedUpload'
+      example:
+        document:
+          id: 018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81
+          member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+          type: health_cert
+          filename: surat-sehat-bayu.pdf
+          content_type: application/pdf
+          size_bytes: 248320
+          status: pending_upload
+          object_key: tenants/12/documents/018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81.pdf
+          uploaded_at: null
+          expires_at: '2027-01-30T00:00:00+08:00'
+        upload:
+          url: https://storage.example.id/private/tenants/12/documents/018f3a1e.pdf?X-Amz-Signature=contoh
+          method: PUT
+          headers:
+            Content-Type: application/pdf
+          expires_at: '2026-11-24T09:45:00+08:00'
+    SignedDownload:
+      type: object
+      description: Signed URL unduh berumur pendek (akses dicatat di `audit_logs`).
+      required: [document_id, url, expires_at]
+      additionalProperties: false
+      properties:
+        document_id:
+          type: string
+          example: 018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81
+        url:
+          type: string
+          format: uri
+          example: https://storage.example.id/private/tenants/12/documents/018f3a1e.pdf?X-Amz-Signature=contoh2
+        expires_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        document_id: 018f3a1e-9b21-7c35-a1d2-8e4f5a6b7c81
+        url: https://storage.example.id/private/tenants/12/documents/018f3a1e.pdf?X-Amz-Signature=contoh2
+        expires_at: '2026-11-24T09:42:00+08:00'
+    MidtransNotification:
+      type: object
+      description: >
+        Payload notifikasi Midtrans (Snap/VA/QRIS). `signature_key` = sha512(order_id +
+        status_code + gross_amount + server key tenant) dan wajib diverifikasi sebelum
+        diproses; status juga diverifikasi ulang ke API Midtrans (AC-13.2).
+      required: [order_id, status_code, gross_amount_raw, transaction_status, signature_key]
+      additionalProperties: true
+      properties:
+        order_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Order ID Midtrans = kode booking.
+          example: TG-7QK2M9
+        status_code:
+          type: string
+          pattern: '^[0-9]{3}$'
+          example: '200'
+        gross_amount_raw:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]{2})?$'
+          description: >
+            Nilai mentah Midtrans (desimal string). Dikonversi ke integer rupiah sebelum
+            disimpan; API tidak pernah menyimpan uang sebagai pecahan (ADR-002 keputusan 9).
+          example: '350000.00'
+        transaction_status:
+          type: string
+          enum:
+            [capture, settlement, pending, deny, cancel, expire, refund, partial_refund,
+             chargeback, partial_chargeback, failure]
+          example: settlement
+        fraud_status:
+          type: [string, "null"]
+          enum: [accept, challenge, deny, null]
+          example: accept
+        payment_type:
+          type: [string, "null"]
+          enum:
+            [credit_card, bank_transfer, gopay, qris, shopeepay, cstore, echannel, null]
+          example: qris
+        transaction_id:
+          type: [string, "null"]
+          description: ID transaksi Midtrans (dipakai sebagai `payments.provider_ref`).
+          example: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+        transaction_time:
+          type: [string, "null"]
+          format: date-time
+          example: '2026-11-24T09:41:00+07:00'
+        signature_key:
+          type: string
+          pattern: '^[0-9a-f]{128}$'
+          example: 8f14e45fceea167a5a36dedd4bea2543a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+      example:
+        order_id: TG-7QK2M9
+        status_code: '200'
+        gross_amount_raw: '350000.00'
+        transaction_status: settlement
+        fraud_status: accept
+        payment_type: qris
+        transaction_id: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+        transaction_time: '2026-11-24T09:41:00+07:00'
+        signature_key: 8f14e45fceea167a5a36dedd4bea2543a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+    WebhookAck:
+      type: object
+      description: Pengakuan webhook (200 selalu dikembalikan bila signature valid, agar tidak di-retry tanpa henti).
+      required: [received, processed]
+      additionalProperties: false
+      properties:
+        received:
+          type: boolean
+          example: true
+        processed:
+          type: boolean
+          description: Ditandai `false` bila notifikasi duplikat/out-of-order dan tidak mengubah state.
+          example: true
+        reason:
+          type: [string, "null"]
+          example: null
+        booking_code:
+          type: [string, "null"]
+          example: TG-7QK2M9
+      example:
+        received: true
+        processed: true
+        reason: null
+        booking_code: TG-7QK2M9
+    QuotaSlot:
+      type: object
+      description: Slot kuota satu jalur × satu tanggal (tenant-scoped, ADR-003 keputusan 1).
+      required:
+        [route_slug, date, capacity, reserved, sold, effective_capacity, remaining, version,
+         closure_active]
+      additionalProperties: false
+      properties:
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        date:
+          $ref: '#/components/schemas/LocalDate'
+        capacity:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 300
+        reserved:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 30
+        sold:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 228
+        effective_capacity:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 0 bila closure aktif; dihitung service dalam transaksi tulis.
+          example: 300
+        remaining:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 42
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Versi baris untuk deteksi perubahan optimistik.
+          example: 17
+        closure_active:
+          type: boolean
+          example: false
+      example:
+        route_slug: rinjani-sembalun
+        date: '2026-12-31'
+        capacity: 300
+        reserved: 30
+        sold: 228
+        effective_capacity: 300
+        remaining: 42
+        version: 17
+        closure_active: false
+    QuotaSlotList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuotaSlot'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - route_slug: rinjani-sembalun
+            date: '2026-12-31'
+            capacity: 300
+            reserved: 30
+            sold: 228
+            effective_capacity: 300
+            remaining: 42
+            version: 17
+            closure_active: false
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    QuotaUpdateRequest:
+      type: object
+      description: >
+        Perubahan kapasitas slot. Ditolak bila `capacity` < `reserved + sold` (ADR-003
+        konsekuensi) atau bila `version` usang.
+      required: [capacity]
+      additionalProperties: false
+      properties:
+        capacity:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+          example: 320
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Versi yang dibaca klien (optimistic locking); opsional.
+          example: 17
+      example:
+        capacity: 320
+        version: 17
+    Closure:
+      type: object
+      description: Penutupan jalur (PRD §7.3).
+      required:
+        [id, route_slug, starts_at, mode, reason, source_url, status, affected_bookings,
+         created_by, created_at]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 42
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        starts_at:
+          $ref: '#/components/schemas/DateTime'
+        ends_at:
+          type: [string, "null"]
+          format: date-time
+          description: null = tanpa batas akhir (sampai dibatalkan).
+          example: '2026-12-05T00:00:00+08:00'
+        mode:
+          $ref: '#/components/schemas/ClosureMode'
+        reason:
+          type: string
+          maxLength: 500
+          example: Karhutla di sisi Sembalun; jalur ditutup sementara.
+        source_url:
+          type: string
+          format: uri
+          example: https://rinjani.example.go.id/pengumuman-penutupan
+        source_ref:
+          type: [string, "null"]
+          example: SM.15/BTNGP/2026
+        status:
+          $ref: '#/components/schemas/ClosureStatus'
+        affected_bookings:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 87
+        created_by:
+          type: string
+          example: joko@rinjani-basecamp.example
+        confirmed_by:
+          type: [string, "null"]
+          example: null
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        id: 42
+        route_slug: rinjani-sembalun
+        starts_at: '2026-12-01T00:00:00+08:00'
+        ends_at: '2026-12-05T00:00:00+08:00'
+        mode: cancel_existing
+        reason: Karhutla di sisi Sembalun; jalur ditutup sementara.
+        source_url: https://rinjani.example.go.id/pengumuman-penutupan
+        source_ref: SM.15/BTNGP/2026
+        status: active
+        affected_bookings: 87
+        created_by: joko@rinjani-basecamp.example
+        confirmed_by: joko@rinjani-basecamp.example
+        created_at: '2026-11-24T09:00:00+08:00'
+    ClosureList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Closure'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - id: 42
+            route_slug: rinjani-sembalun
+            starts_at: '2026-12-01T00:00:00+08:00'
+            ends_at: '2026-12-05T00:00:00+08:00'
+            mode: cancel_existing
+            reason: Karhutla di sisi Sembalun; jalur ditutup sementara.
+            source_url: https://rinjani.example.go.id/pengumuman-penutupan
+            source_ref: SM.15/BTNGP/2026
+            status: active
+            affected_bookings: 87
+            created_by: joko@rinjani-basecamp.example
+            confirmed_by: joko@rinjani-basecamp.example
+            created_at: '2026-11-24T09:00:00+08:00'
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    ClosureCreateRequest:
+      type: object
+      description: Permintaan pembuatan closure; `source_url` wajib (PRD §6.1/§7.3).
+      required: [route_slug, starts_at, mode, reason, source_url]
+      additionalProperties: false
+      properties:
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        starts_at:
+          $ref: '#/components/schemas/DateTime'
+        ends_at:
+          type: [string, "null"]
+          format: date-time
+          example: '2026-12-05T00:00:00+08:00'
+        mode:
+          $ref: '#/components/schemas/ClosureMode'
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+          example: Karhutla di sisi Sembalun; jalur ditutup sementara.
+        source_url:
+          type: string
+          format: uri
+          example: https://rinjani.example.go.id/pengumuman-penutupan
+        source_ref:
+          type: [string, "null"]
+          maxLength: 100
+          example: SM.15/BTNGP/2026
+      example:
+        route_slug: rinjani-sembalun
+        starts_at: '2026-12-01T00:00:00+08:00'
+        ends_at: '2026-12-05T00:00:00+08:00'
+        mode: cancel_existing
+        reason: Karhutla di sisi Sembalun; jalur ditutup sementara.
+        source_url: https://rinjani.example.go.id/pengumuman-penutupan
+        source_ref: SM.15/BTNGP/2026
+    ClosureUpdateRequest:
+      type: object
+      description: Transisi status closure (konfirmasi manusia wajib sebelum `active`).
+      required: [status]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [active, cancelled, completed]
+          example: active
+        source_ref:
+          type: [string, "null"]
+          maxLength: 100
+          example: SM.15/BTNGP/2026
+        note:
+          type: [string, "null"]
+          maxLength: 300
+          example: Dikonfirmasi lewat telepon BKSDA.
+      example:
+        status: active
+        source_ref: SM.15/BTNGP/2026
+        note: Dikonfirmasi lewat telepon BKSDA.
+    DisruptionCase:
+      type: object
+      description: Kasus gangguan untuk booking terdampak closure (PRD §7.3).
+      required:
+        [id, closure_id, route_slug, status, affected_bookings, pending_choices, resolved_bookings,
+         created_at, updated_at]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 108
+        closure_id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 42
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        status:
+          $ref: '#/components/schemas/DisruptionStatus'
+        affected_bookings:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 87
+        pending_choices:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 12
+        resolved_bookings:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 75
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        id: 108
+        closure_id: 42
+        route_slug: rinjani-sembalun
+        status: in_progress
+        affected_bookings: 87
+        pending_choices: 12
+        resolved_bookings: 75
+        created_at: '2026-11-24T09:01:00+08:00'
+        updated_at: '2026-11-24T10:30:00+08:00'
+    DisruptionList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisruptionCase'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - id: 108
+            closure_id: 42
+            route_slug: rinjani-sembalun
+            status: in_progress
+            affected_bookings: 87
+            pending_choices: 12
+            resolved_bookings: 75
+            created_at: '2026-11-24T09:01:00+08:00'
+            updated_at: '2026-11-24T10:30:00+08:00'
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    DisruptionResolveRequest:
+      type: object
+      description: Hasil penanganan satu Disruption Case.
+      required: [resolution]
+      additionalProperties: false
+      properties:
+        resolution:
+          type: string
+          enum: [refund, reschedule, closed]
+          example: reschedule
+        note:
+          type: [string, "null"]
+          maxLength: 300
+          example: 75 booking reschedule, 12 refund penuh.
+      example:
+        resolution: reschedule
+        note: 75 booking reschedule, 12 refund penuh.
+    Payment:
+      type: object
+      description: Transaksi pembayaran tenant (ADR-002).
+      required: [id, provider, provider_ref, channel, amount, status]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: 018f3a1e-7c11-4a20-8b33-1f2e3d4c5b60
+        provider:
+          type: string
+          const: midtrans
+          example: midtrans
+        provider_ref:
+          type: string
+          description: Unik per transaksi; kunci idempotensi settlement (ADR-002 keputusan 4).
+          example: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+        channel:
+          $ref: '#/components/schemas/PaymentChannel'
+        amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        settled_at:
+          type: [string, "null"]
+          format: date-time
+          example: '2026-11-24T02:41:00Z'
+      example:
+        id: 018f3a1e-7c11-4a20-8b33-1f2e3d4c5b60
+        provider: midtrans
+        provider_ref: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+        channel: qris
+        amount: 350000
+        status: settled
+        settled_at: '2026-11-24T02:41:00Z'
+    LedgerEntry:
+      type: object
+      description: Entri buku besar append-only (PRD §10.2).
+      required: [id, type, amount, entry_at, reference]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 9012
+        type:
+          $ref: '#/components/schemas/LedgerEntryType'
+        amount:
+          $ref: '#/components/schemas/Money'
+        entry_at:
+          $ref: '#/components/schemas/DateTime'
+        reference:
+          type: string
+          description: Referensi idempotensi (mis. `payments.provider_ref`).
+          example: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+      example:
+        id: 9012
+        type: payment
+        amount: 350000
+        entry_at: '2026-11-24T02:41:00Z'
+        reference: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+    ConsoleBooking:
+      type: object
+      description: Baris daftar booking konsol.
+      required:
+        [code, route_slug, date, status, member_count, contact_name, total_amount, created_at]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          example: TG-7QK2M9
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        date:
+          $ref: '#/components/schemas/LocalDate'
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        member_count:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 5
+        contact_name:
+          type: string
+          example: Bayu Pratama
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        code: TG-7QK2M9
+        route_slug: rinjani-sembalun
+        date: '2026-12-31'
+        status: Confirmed
+        member_count: 5
+        contact_name: Bayu Pratama
+        total_amount: 350000
+        created_at: '2026-11-24T09:30:00+08:00'
+    ConsoleBookingList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsoleBooking'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - code: TG-7QK2M9
+            route_slug: rinjani-sembalun
+            date: '2026-12-31'
+            status: Confirmed
+            member_count: 5
+            contact_name: Bayu Pratama
+            total_amount: 350000
+            created_at: '2026-11-24T09:30:00+08:00'
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    ConsoleBookingDetail:
+      type: object
+      description: Detail booking konsol + pembayaran + buku besar.
+      required: [booking, payments, ledger]
+      additionalProperties: false
+      properties:
+        booking:
+          $ref: '#/components/schemas/Booking'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        ledger:
+          type: array
+          items:
+            $ref: '#/components/schemas/LedgerEntry'
+      example:
+        booking:
+          code: TG-7QK2M9
+          route_slug: rinjani-sembalun
+          date: '2026-12-31'
+          status: Confirmed
+          party_size: 5
+          hold_expires_at: null
+          total_amount: 350000
+          created_at: '2026-11-24T09:30:00+08:00'
+          updated_at: '2026-11-24T09:42:00+08:00'
+          members:
+            - id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+              full_name: Bayu Pratama
+              identity_type: nik
+              identity_masked: '3201••••••••0001'
+              is_foreign: false
+              birth_date: '1994-05-17'
+              phone: '+628123456789'
+              email: bayu@example.com
+        payments:
+          - id: 018f3a1e-7c11-4a20-8b33-1f2e3d4c5b60
+            provider: midtrans
+            provider_ref: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+            channel: qris
+            amount: 350000
+            status: settled
+            settled_at: '2026-11-24T02:41:00Z'
+        ledger:
+          - id: 9012
+            type: payment
+            amount: 350000
+            entry_at: '2026-11-24T02:41:00Z'
+            reference: 0e5d6c1a-77d2-4d1a-9c67-2f1e4b5c6d70
+    ReportRow:
+      type: object
+      description: Satu baris laporan harian.
+      required: [date, route_slug, bookings, members, gross_amount]
+      additionalProperties: false
+      properties:
+        date:
+          $ref: '#/components/schemas/LocalDate'
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        bookings:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 18
+        members:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 64
+        gross_amount:
+          $ref: '#/components/schemas/Money'
+      example:
+        date: '2026-12-31'
+        route_slug: rinjani-sembalun
+        bookings: 18
+        members: 64
+        gross_amount: 6300000
+    ReportResponse:
+      type: object
+      description: Baris laporan (format JSON, ter-paginasi).
+      required: [type, from, to, format, data, meta, generated_at]
+      additionalProperties: false
+      properties:
+        type:
+          $ref: '#/components/schemas/ReportType'
+        from:
+          $ref: '#/components/schemas/LocalDate'
+        to:
+          $ref: '#/components/schemas/LocalDate'
+        format:
+          type: string
+          enum: [json]
+          example: json
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportRow'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+        generated_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        type: bookings
+        from: '2026-12-01'
+        to: '2026-12-31'
+        format: json
+        data:
+          - date: '2026-12-31'
+            route_slug: rinjani-sembalun
+            bookings: 18
+            members: 64
+            gross_amount: 6300000
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+        generated_at: '2026-11-24T09:50:00+08:00'
+    RuleList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequirementRule'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - id: 7
+            scope: route
+            route_slug: rinjani-sembalun
+            type: health_cert_max_age_hours
+            params:
+              hours: 24
+            severity: block
+            source_url: https://rinjani.example.go.id/sop-pendakian-2026
+            source_ref: SK.42/BTNGP/2026
+            verified_at: '2026-11-01'
+            effective_from: '2026-11-01'
+            effective_to: null
+            note: null
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    RuleCreateRequest:
+      type: object
+      description: Pembuatan rule baru (wajib bersumber, PRD §6.1).
+      required: [scope, type, params, severity, source_url, verified_at, effective_from]
+      additionalProperties: false
+      properties:
+        scope:
+          $ref: '#/components/schemas/RuleScope'
+        route_slug:
+          type: [string, "null"]
+          description: Wajib bila `scope` = `route`.
+          example: rinjani-sembalun
+        type:
+          $ref: '#/components/schemas/RequirementRuleType'
+        params:
+          type: object
+          additionalProperties: true
+          example:
+            hours: 24
+        severity:
+          $ref: '#/components/schemas/RuleSeverity'
+        source_url:
+          type: string
+          format: uri
+          example: https://rinjani.example.go.id/sop-pendakian-2026
+        source_ref:
+          type: [string, "null"]
+          maxLength: 100
+          example: SK.42/BTNGP/2026
+        verified_at:
+          $ref: '#/components/schemas/LocalDate'
+        effective_from:
+          $ref: '#/components/schemas/LocalDate'
+        effective_to:
+          type: [string, "null"]
+          format: date
+          example: null
+      example:
+        scope: route
+        route_slug: rinjani-sembalun
+        type: guide_ratio
+        params:
+          max_hikers_per_guide: 4
+        severity: block
+        source_url: https://rinjani.example.go.id/sop-pendakian-2026
+        source_ref: SK.42/BTNGP/2026
+        verified_at: '2026-11-01'
+        effective_from: '2026-11-01'
+        effective_to: null
+    RuleUpdateRequest:
+      type: object
+      description: Perubahan rule (parsial; minimal satu field).
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        params:
+          type: object
+          additionalProperties: true
+          example:
+            max_hikers_per_guide: 5
+        severity:
+          $ref: '#/components/schemas/RuleSeverity'
+        source_url:
+          type: string
+          format: uri
+          example: https://rinjani.example.go.id/sop-pendakian-2026
+        source_ref:
+          type: [string, "null"]
+          maxLength: 100
+          example: SK.42/BTNGP/2026
+        verified_at:
+          $ref: '#/components/schemas/LocalDate'
+        effective_from:
+          $ref: '#/components/schemas/LocalDate'
+        effective_to:
+          type: [string, "null"]
+          format: date
+          example: '2027-06-30'
+        note:
+          type: [string, "null"]
+          maxLength: 300
+          example: Rasio dilonggarkan setelah rapat evaluasi.
+      example:
+        params:
+          max_hikers_per_guide: 5
+        severity: block
+        verified_at: '2026-11-20'
+        note: Rasio dilonggarkan setelah rapat evaluasi.
+    PosEvent:
+      type: object
+      description: Satu event check-in/out hasil scan POS (dibuat di perangkat, offline).
+      required: [client_event_id, member_id, ticket_id, checkpoint_id, type, scanned_at, device_id]
+      additionalProperties: false
+      properties:
+        client_event_id:
+          type: string
+          format: uuid
+          description: UUID dibuat perangkat; UNIQUE di DB (idempotensi, PRD §10.2).
+          example: 018f3a1e-5a10-4c22-9f01-6b2c3d4e5f60
+        member_id:
+          type: string
+          example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        ticket_id:
+          type: string
+          example: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+        checkpoint_id:
+          type: string
+          example: sembalun-gate
+        type:
+          type: string
+          enum: [in, out]
+          example: in
+        scanned_at:
+          $ref: '#/components/schemas/DateTime'
+        device_id:
+          type: string
+          maxLength: 64
+          example: pos-sembalun-01
+      example:
+        client_event_id: 018f3a1e-5a10-4c22-9f01-6b2c3d4e5f60
+        member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        ticket_id: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+        checkpoint_id: sembalun-gate
+        type: in
+        scanned_at: '2026-12-31T06:12:00+08:00'
+        device_id: pos-sembalun-01
+    PosSyncRequest:
+      type: object
+      description: Batch event dari antrean IndexedDB (maksimum 500 per batch).
+      required: [device_id, events]
+      additionalProperties: false
+      properties:
+        device_id:
+          type: string
+          maxLength: 64
+          example: pos-sembalun-01
+        events:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/PosEvent'
+      example:
+        device_id: pos-sembalun-01
+        events:
+          - client_event_id: 018f3a1e-5a10-4c22-9f01-6b2c3d4e5f60
+            member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+            ticket_id: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+            checkpoint_id: sembalun-gate
+            type: in
+            scanned_at: '2026-12-31T06:12:00+08:00'
+            device_id: pos-sembalun-01
+    PosConflict:
+      type: object
+      description: Log konflik scan (first scan wins).
+      required: [client_event_id, member_id, resolution]
+      additionalProperties: false
+      properties:
+        client_event_id:
+          type: string
+          format: uuid
+          example: 018f3a1e-5a10-4c22-9f01-6b2c3d4e5f61
+        member_id:
+          type: string
+          example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        resolution:
+          type: string
+          const: first_scan_wins
+          example: first_scan_wins
+      example:
+        client_event_id: 018f3a1e-5a10-4c22-9f01-6b2c3d4e5f61
+        member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        resolution: first_scan_wins
+    PosSyncResponse:
+      type: object
+      description: Hasil sinkron batch.
+      required: [accepted, duplicates, conflicts, revoked]
+      additionalProperties: false
+      properties:
+        accepted:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 12
+        duplicates:
+          type: integer
+          format: int32
+          minimum: 0
+          example: 1
+        conflicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PosConflict'
+        revoked:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Event yang ditolak karena tiket ada di daftar revoke.
+          example: 0
+      example:
+        accepted: 12
+        duplicates: 1
+        conflicts:
+          - client_event_id: 018f3a1e-5a10-4c22-9f01-6b2c3d4e5f61
+            member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+            resolution: first_scan_wins
+        revoked: 0
+    PosManifestEntry:
+      type: object
+      description: >
+        Entri manifest POS. **Tanpa PII**: hanya referensi + nama (ADR-004 keputusan 2/5);
+        NIK/paspor/dokumen tidak pernah dikirim ke perangkat.
+      required: [member_id, booking_code, full_name, route_slug, ticket_id, status]
+      additionalProperties: false
+      properties:
+        member_id:
+          type: string
+          example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        booking_code:
+          type: string
+          example: TG-7QK2M9
+        full_name:
+          type: string
+          example: Bayu Pratama
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        ticket_id:
+          type: string
+          example: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+        status:
+          type: string
+          enum: [not_arrived, in, out, overdue, revoked]
+          example: in
+        last_event_at:
+          type: [string, "null"]
+          format: date-time
+          example: '2026-12-31T06:12:00+08:00'
+      example:
+        member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        booking_code: TG-7QK2M9
+        full_name: Bayu Pratama
+        route_slug: rinjani-sembalun
+        ticket_id: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+        status: in
+        last_event_at: '2026-12-31T06:12:00+08:00'
+    PosManifest:
+      type: object
+      description: Manifest ter-paginasi untuk cache offline POS (ADR-004 keputusan 5).
+      required: [manifest_version, generated_at, data, meta]
+      additionalProperties: false
+      properties:
+        route_slug:
+          type: [string, "null"]
+          example: rinjani-sembalun
+        manifest_version:
+          type: integer
+          format: int64
+          minimum: 0
+          example: 202
+        generated_at:
+          $ref: '#/components/schemas/DateTime'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PosManifestEntry'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        route_slug: rinjani-sembalun
+        manifest_version: 202
+        generated_at: '2026-12-31T05:00:00+08:00'
+        data:
+          - member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+            booking_code: TG-7QK2M9
+            full_name: Bayu Pratama
+            route_slug: rinjani-sembalun
+            ticket_id: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+            status: in
+            last_event_at: '2026-12-31T06:12:00+08:00'
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    PosRevocation:
+      type: object
+      description: Tiket yang dicabut; POS menolaknya saat verifikasi offline.
+      required: [ticket_id, member_id, revoked_at]
+      additionalProperties: false
+      properties:
+        ticket_id:
+          type: string
+          example: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+        member_id:
+          type: string
+          example: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        revoked_at:
+          $ref: '#/components/schemas/DateTime'
+        reason:
+          type: [string, "null"]
+          maxLength: 200
+          example: Booking dibatalkan dan direfund.
+      example:
+        ticket_id: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+        member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+        revoked_at: '2026-12-01T04:00:00Z'
+        reason: Booking dibatalkan dan direfund.
+    PosRevocationList:
+      type: object
+      description: Daftar revoke + kunci publik verifikasi tiket (verifikasi QR offline).
+      required: [ticket_public_key, generated_at, data, meta]
+      additionalProperties: false
+      properties:
+        ticket_public_key:
+          type: string
+          description: Kunci publik Ed25519 (base64) untuk verifikasi tanda tangan QR tiket.
+          example: MCowBQYDK2VwAyEA1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f
+        generated_at:
+          $ref: '#/components/schemas/DateTime'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PosRevocation'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        ticket_public_key: MCowBQYDK2VwAyEA1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f
+        generated_at: '2026-12-31T05:00:00+08:00'
+        data:
+          - ticket_id: 018f3a1e-4b01-4d1f-8c99-1a2b3c4d5e6f
+            member_id: 018f3a1e-8f2b-7a44-9c67-2f1e4b5c6d70
+            revoked_at: '2026-12-01T04:00:00Z'
+            reason: Booking dibatalkan dan direfund.
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    Tenant:
+      type: object
+      description: Tenant platform.
+      required: [slug, name, type, status, payment_ready, created_at, updated_at]
+      additionalProperties: false
+      properties:
+        slug:
+          type: string
+          example: rinjani-basecamp
+        name:
+          type: string
+          example: Basecamp Sembalun
+        type:
+          $ref: '#/components/schemas/TenantType'
+        status:
+          $ref: '#/components/schemas/TenantStatus'
+        payment_ready:
+          type: boolean
+          description: >
+            Kredensial Midtrans tenant sudah terpasang (kredensial sendiri, terenkripsi).
+            `false` → `payBooking` menolak (ADR-002 keputusan 7).
+          example: true
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        slug: rinjani-basecamp
+        name: Basecamp Sembalun
+        type: saas
+        status: active
+        payment_ready: true
+        created_at: '2026-11-01T02:00:00Z'
+        updated_at: '2026-11-24T02:00:00Z'
+    TenantList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tenant'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - slug: rinjani-basecamp
+            name: Basecamp Sembalun
+            type: saas
+            status: active
+            payment_ready: true
+            created_at: '2026-11-01T02:00:00Z'
+            updated_at: '2026-11-24T02:00:00Z'
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    TenantCreateRequest:
+      type: object
+      description: Onboarding tenant baru (FR-01). Kredensial Midtrans diisi setelahnya oleh tenant.
+      required: [slug, name, type, admin_email]
+      additionalProperties: false
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+          minLength: 3
+          maxLength: 40
+          example: rinjani-basecamp
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+          example: Basecamp Sembalun
+        type:
+          $ref: '#/components/schemas/TenantType'
+        admin_email:
+          type: string
+          format: email
+          maxLength: 254
+          example: joko@rinjani-basecamp.example
+      example:
+        slug: rinjani-basecamp
+        name: Basecamp Sembalun
+        type: saas
+        admin_email: joko@rinjani-basecamp.example
+    TenantUpdateRequest:
+      type: object
+      description: Perubahan tenant (parsial).
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+          example: Basecamp Sembalun (baru)
+        status:
+          $ref: '#/components/schemas/TenantStatus'
+        payment_ready:
+          type: boolean
+          example: true
+      example:
+        status: active
+        payment_ready: true
+    BillingInvoice:
+      type: object
+      description: Invoice bulanan platform (fee terpisah dari transaksi tenant, P3/FR-28).
+      required:
+        [id, tenant_slug, period_start, period_end, amount, status, transaction_count, issued_at]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: INV-2026-11-0007
+        tenant_slug:
+          type: string
+          example: rinjani-basecamp
+        period_start:
+          $ref: '#/components/schemas/LocalDate'
+        period_end:
+          $ref: '#/components/schemas/LocalDate'
+        amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        transaction_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Metering transaksi platform (dasar invoice).
+          example: 412
+        issued_at:
+          type: [string, "null"]
+          format: date-time
+          example: '2026-11-01T00:00:00Z'
+        paid_at:
+          type: [string, "null"]
+          format: date-time
+          example: null
+      example:
+        id: INV-2026-11-0007
+        tenant_slug: rinjani-basecamp
+        period_start: '2026-10-01'
+        period_end: '2026-10-31'
+        amount: 412000
+        status: issued
+        transaction_count: 412
+        issued_at: '2026-11-01T00:00:00Z'
+        paid_at: null
+    BillingInvoiceList:
+      type: object
+      required: [data, meta]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoice'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+      example:
+        data:
+          - id: INV-2026-11-0007
+            tenant_slug: rinjani-basecamp
+            period_start: '2026-10-01'
+            period_end: '2026-10-31'
+            amount: 412000
+            status: issued
+            transaction_count: 412
+            issued_at: '2026-11-01T00:00:00Z'
+            paid_at: null
+        meta:
+          page: 1
+          per_page: 20
+          total: 1
+          total_pages: 1
+    AlertSubscriptionRequest:
+      type: object
+      description: Langganan alert status jalur (FR-35). Wajib opt-in sebelum notifikasi dikirim.
+      required: [channel, contact]
+      additionalProperties: false
+      properties:
+        channel:
+          type: string
+          enum: [whatsapp, email]
+          example: whatsapp
+        contact:
+          type: string
+          maxLength: 320
+          description: Nomor WhatsApp E.164 atau email.
+          example: '+628123456789'
+      example:
+        channel: whatsapp
+        contact: '+628123456789'
+    RouteAlertSubscription:
+      type: object
+      description: Langganan alert tersimpan (kontak dikembalikan tersamarkan).
+      required: [id, route_slug, channel, contact_masked, status, created_at]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: 018f3a1e-3c01-4f11-8a22-9d0e1f2a3b4c
+        route_slug:
+          type: string
+          example: rinjani-sembalun
+        channel:
+          type: string
+          enum: [whatsapp, email]
+          example: whatsapp
+        contact_masked:
+          type: string
+          example: '+62812•••••789'
+        status:
+          type: string
+          enum: [pending, active, unsubscribed]
+          example: pending
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+      example:
+        id: 018f3a1e-3c01-4f11-8a22-9d0e1f2a3b4c
+        route_slug: rinjani-sembalun
+        channel: whatsapp
+        contact_masked: '+62812•••••789'
+        status: pending
+        created_at: '2026-11-24T09:20:00+08:00'
