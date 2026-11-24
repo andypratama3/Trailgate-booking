@@ -1,4 +1,5 @@
 > **Status:** accepted · **Tanggal:** 2026-11-24 · **Owner:** tg-architect · **Amandemen atas:** PRD §16.1, §16.3, §16.5, §16.7, §16.15, §17
+> **Amandemen (2026-11-24):** Deviasi 3 diperluas dari commit bootstrap menjadi **seluruh phase P0**, dengan pemicu berakhir (T-008 + branch `integration`) dan tindak lanjut wajib sejak P1.
 
 # ADR-007 — Deviasi operating model saat bootstrap P0
 
@@ -16,8 +17,8 @@ Empat deviasi berikut sudah dicatat sebagai prosa — log keputusan `O-1..O-5` d
 menerapkan PRD §16/§18.1 tanpa rujukan ini dapat menandai bootstrap sebagai pelanggaran diam.
 ADR ini mencatat deviasi itu secara formal, beserta dasar buktinya.
 
-Deviasi ini berlaku **hanya untuk bootstrap P0**; setelah roster, papan, branch `integration`,
-dan CI berdiri, siklus kerja §16.7 berlaku penuh.
+Deviasi ini berlaku **hanya untuk phase P0** (termasuk commit bootstrap); setelah roster, papan,
+branch `integration`, dan CI berdiri (T-008), siklus kerja §16.7 berlaku penuh.
 
 ---
 
@@ -110,49 +111,85 @@ dibawa di blok `deviation.prd_dep` agar keterlacakan tidak hilang.
 
 ---
 
-## Deviasi 3 — Bootstrap di-commit langsung ke `master`, bukan lewat `agent/<owner>/<id>` → `integration`
+## Deviasi 3 — Seluruh phase P0 di-commit langsung ke `master`, bukan lewat `agent/<owner>/<id>` → `integration`
 
 **Konteks**
 
 PRD §16.5 mencontohkan task card dengan `branch: agent/tg-data/T-121` (pola `agent/<owner>/<id>`),
 dan §16.7 langkah akhir siklus kerja adalah "tg-devops merge ke `integration` + CI penuh".
-Pada bootstrap, branch `integration` belum ada di repo dan pekerjaan T-002 dilakukan langsung
-oleh Orchestrator — sesi utama, bukan subagent — sehingga tidak ada `agent/<owner>/<id>` yang
-relevan.
+Cakupan deviasi ini adalah **seluruh phase P0**, bukan hanya commit bootstrap: tiga kondisi
+membuat alur §16.5/§16.7 tidak dapat dijalankan untuk commit P0 mana pun.
+
+1. Branch `integration` belum ada di repo. Ia dibuat `tg-devops`, seat yang baru ada setelah
+   T-002 (Deviasi 2); `git branch -a` hanya menampilkan `master`.
+2. CI belum ada. §16.7 menuntut "CI penuh" di akhir alur; pipeline itu deliverable T-008
+   (`depends_on: [T-001]`), sehingga sebelum T-008 tidak ada CI yang bisa dijalankan.
+3. §16.7 mengandaikan subagent dengan worktree sendiri untuk menghasilkan `agent/<owner>/<id>`.
+   Hal itu **dibantah di lingkungan ini** (Deviasi 4: semua subagent menulis ke working tree yang
+   sama dan Orchestrator memegang semua commit), sehingga pola branch-per-subagent tidak punya
+   subjek di P0.
+
+Karena T-008 sendiri adalah tugas P0, syarat §16.5/§16.7 tidak dapat dipenuhi oleh commit P0
+mana pun tanpa sirkularitas.
 
 Bukti repo:
 
 - `docs/board/tasks/T-002.yml` — `branch: master` dan blok `deviation.branch` ("Tugas ini
   dikerjakan langsung oleh Orchestrator ... sehingga dikerjakan di master. Jalur merge ke branch
   integration + CI penuh milik tg-devops dan belum ada di repo awal").
-- Riwayat git `master`: `493ddba chore(bootstrap): governance, agent roster, and board (T-002)`
-  dan `41292fc chore(board): complete P0 task cards, ownership fixes, board (T-002)`;
-  `git branch -a` hanya menampilkan `master` — tidak ada `integration`.
+- `docs/board/tasks/T-001.yml` — `branch: agent/tg-devops/T-001` (task card sudah benar menurut
+  §16.5), tetapi commit-nya mendarat di `master` karena alasan (1)-(3); kartu T-003 dan T-009
+  berpola sama.
+- `docs/board/tasks/T-008.yml` — `epic: P0`, `phase: P0`, `owner: tg-devops`,
+  `depends_on: [T-001]`; ini yang memasang CI.
+- Riwayat git `master`: `git branch -a` hanya menampilkan `master` — tidak ada `integration`.
 - `docs/board/STATUS.md` — rencana gelombang W0 mencantumkan T-002 sebagai tugas W0 Orchestrator.
+
+Commit P0 yang dicakup deviasi ini (urutan kronologis, per `git log`):
+
+| commit | ringkasan |
+|---|---|
+| `493ddba` | chore(bootstrap): governance, agent roster, and board (T-002) |
+| `41292fc` | chore(board): complete P0 task cards, ownership fixes, board (T-002) |
+| `f29df88` | feat(scaffold): monorepo apps/{api,web,pos} + packages/* + Docker dev stack (T-001) |
+| `e3241f59` | docs(requirements): pilot interview + validation kit (T-009) |
+| `2bc073a` | feat(scaffold): Laravel 12 application core, lockfiles, framework config (T-001) |
+| `7d96f744` | docs(requirements): FR/AC rework round 1 — coverage + measurable ACs (T-003) |
+| `05964961` | docs(adr): ADR-007 governance deviations + ownership map completion (T-002) |
 
 **Keputusan**
 
-Commit bootstrap (T-002) langsung ke `master`. Jawaban atas §16.5/§16.7 ditunda: jalur
-`agent/<owner>/<id>` → `integration` + CI penuh adalah deliverable `tg-devops` (sesuai §16.3
-"merge ke `integration`") dan belum ada di repo. Karena itu pula DoD §18.2 ("merge ke
-`integration` dengan CI penuh hijau") **belum berlaku** untuk bootstrap.
+Seluruh commit phase P0 langsung ke `master`; jawaban atas §16.5/§16.7 ditunda ke akhir P0.
+Jalur `agent/<owner>/<id>` → `integration` + CI penuh adalah deliverable `tg-devops` (sesuai
+§16.3 "merge ke `integration`") dan T-008 yang memasang CI. Karena itu DoD §18.2 ("merge ke
+`integration` dengan CI penuh hijau") **belum berlaku** untuk seluruh phase P0.
 
 **Alternatif yang ditolak**
 
-1. Membuat branch `integration` dan `agent/orchestrator/T-002` sendiri dari Orchestrator.
-   Ditolak: menciptakan alur merge tanpa CI dan tanpa owner rilis; `tg-devops` pemilik jalur itu
-   menurut §16.3/§16.7.
+1. Membuat branch `integration` dan `agent/orchestrator/...` sendiri dari Orchestrator. Ditolak:
+   menciptakan alur merge tanpa CI dan tanpa owner rilis; `tg-devops` pemilik jalur itu menurut
+   §16.3/§16.7.
 2. Menunggu `integration` ada sebelum bootstrap apa pun. Ditolak: `integration` dibuat oleh
    `tg-devops`, yang seatnya sendiri adalah keluaran T-002 (sirkular dengan Deviasi 2).
+3. Membuka cabang `agent/...` per tugas T-001 meski tanpa CI/integration. Ditolak: tidak ada
+   tujuan merge; §16.7 mensyaratkan `integration` sebagai target dan CI sebagai gerbang, keduanya
+   absen.
+4. Menyatakan deviasi ini berakhir setelah commit bootstrap pertama dan menandai T-001 sebagai
+   pelanggaran. Ditolak: T-001 berjalan di dalam P0 dengan kondisi (1)-(3) yang sama; menandainya
+   pelanggaran akan menghukum pekerjaan yang tidak memiliki jalur sah — persis yang harus dicegah
+   ADR ini.
 
 **Konsekuensi**
 
-- `master` memuat commit bootstrap tanpa jalur merge §16.7; ini tercatat, bukan pelanggaran diam.
-- `tg-devops` bertanggung jawab menegakkan alur `agent/<owner>/<id>` → `integration` + CI penuh
-  untuk tugas setelah bootstrap; setelah itu DoD §18.2 berlaku penuh dan ADR ini tidak lagi
-  mengecualikannya.
-- Setiap tugas pasca-bootstrap yang tetap di-commit ke `master` adalah pelanggaran, bukan
-  kelanjutan deviasi ini.
+- `master` memuat seluruh commit P0 tanpa jalur merge §16.7; ini tercatat, bukan pelanggaran diam.
+- **Pemicu berakhirnya deviasi:** T-008 mendaratkan CI dan `tg-devops` membuat branch
+  `integration`. Setelah itu ADR ini tidak lagi mengecualikan apa pun.
+- **Tindak lanjut wajib:** sejak tugas P1 pertama, pekerjaan mengikuti §16.5/§16.7
+  (`agent/<owner>/<id>` → `integration` → CI penuh) dan DoD §18.2 berlaku penuh.
+- Setiap tugas P1+ yang di-commit ke `master` adalah pelanggaran, bukan kelanjutan deviasi ini.
+- Deviasi 4 adalah dasar atas butir (3): pola `agent/<owner>/<id>` per subagent tidak punya
+  subjek tanpa worktree terisolasi; bila isolasi worktree kelak tersedia, pola itu menjadi mungkin
+  dan ADR ini ditinjau ulang.
 
 ---
 
@@ -205,6 +242,8 @@ operasional yang mengikat:
   Orchestrator menanggung kontrol ini.
 - Bila OMP kelak menyediakan isolasi worktree terverifikasi, ADR ini diganti (superseded) dan
   §16.1/§16.15 kembali berlaku penuh.
+- Deviasi ini adalah dasar atas Deviasi 3 butir (3): pola `agent/<owner>/<id>` → `integration`
+  (§16.5/§16.7) tidak dapat dijalankan selama subagent tidak punya worktree sendiri.
 
 ---
 
@@ -233,6 +272,8 @@ Bukti repo: `OWNERS.md` baris `docs/board/**  (kecuali audit/**)   orchestrator`
 - `docs/board/STATUS.md` — log keputusan O-1, O-2, O-4; tabel "Fakta lingkungan terverifikasi"
   (baris isolasi filesystem subagent); tabel gelombang P0
 - `docs/board/tasks/T-002.yml` — blok `deviation:`, `depends_on`, `branch`, `notes`
+- `docs/board/tasks/T-001.yml`, `T-003.yml`, `T-008.yml`, `T-009.yml` — `phase: P0`, `branch`,
+  `depends_on` (commit P0 yang dicakup Deviasi 3 dan pemicu CI di T-008)
 - `docs/board/YIELD.md` — skema BuildReport/ReviewReport/VerifyReport/ReworkBundle (§16.6)
 - `OWNERS.md` — peta path, blok "Path infra yang tidak terdaftar di PRD §16.4"
 - `AGENTS.md` — aturan operasional semua agent (§16.11)
