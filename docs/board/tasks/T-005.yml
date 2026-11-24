@@ -16,11 +16,12 @@ acceptance:
   - "ADR-001 Tenancy: SaaS multi-tenant satu DB, kolom tenant_id + global scope; TENANT_MODE=single sebagai build sama (D1). Alternatif DB-per-tenant ditolak dengan alasan."
   - "ADR-002 Pembayaran: BYO Midtrans per tenant, platform tidak memegang dana (D4); konsekuensi penagihan fee terpisah (§14)."
   - "ADR-003 Kuota: tabel quota_slots UNIQUE(route_id,date), invarian reserved+sold<=effective_capacity, transaksi atomik, Redis hanya pelengkap."
-  - "ADR-004 Offline POS: antrean IndexedDB + client_event_id idempoten, konflik first-scan-wins + log."
+  - "ADR-004 Offline POS: antrean IndexedDB + client_event_id idempoten, konflik first-scan-wins + log. WAJIB mencatat konsekuensi topologi: apps/pos adalah app Next TERPISAH (dua app Next, IndexedDB per-origin, SW/manifest sendiri) dan alternatif route-group di dalam apps/web yang ditolak beserta alasannya (temuan tg-architect T-001 F1A-5)."
   - "ADR-005 Enkripsi field: NIK/paspor/surat sehat di-cast terenkripsi, disk privat, signed URL, retensi."
-  - "ADR-006 Versi paket: daftar paket + versi ter-pin hasil cek Packagist/npm saat scaffold (dari T-001), plus larangan menambah paket tanpa persetujuan tg-security."
+  - "ADR-006 Versi paket: daftar paket + versi ter-pin hasil cek Packagist/npm saat scaffold (dari T-001), larangan menambah paket tanpa persetujuan tg-security, level phpstan yang disepakati (T-001 memakai level 5 — konfirmasi/ubah di sini), dan digest/tag penuh image docker (temuan tg-security T-001 F1B-5)."
   - "Setiap ADR punya: Konteks, Keputusan, Alternatif yang ditolak, Konsekuensi, Status (accepted)"
   - "Keputusan dipetakan ke keputusan inti PRD §0 (D1, D4, D5, D7)"
+  - "ADR-006 mencatat keputusan package gate tg-security atas PRD §9.2 (approve/defer/reject per paket) agar tidak diulang."
 artifacts_expected:
   - docs/adr/ADR-001-tenancy.md ... ADR-006-package-versions.md
   - docs/adr/README.md (indeks)

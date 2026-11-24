@@ -13,7 +13,8 @@ Boleh menulis: `.github/**`, `infra/**`, `docker/**`, serta path infrastruktur `
 → milik `tg-data`, **bukan** `app/Domain/**` → `tg-backend`, **bukan** `app/Integrations/**` →
 `tg-integrations`, **bukan** `apps/web/app/(public)/**` / `(console)/**` / `apps/pos/**`),
 `docker-compose*.yml`, `Makefile`, `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`,
-`tsconfig*.json` (root), `.env.example`, `.env.testing`, `.gitignore`, `README.md` (bukan `AGENTS.md`/`OWNERS.md`).
+`tsconfig*.json` (root), `.env.example`, `.env.testing`, `.gitignore`, `.dockerignore`,
+`README.md` (bukan `AGENTS.md`/`OWNERS.md`).
 Dilarang: logika bisnis.
 
 Tanggung jawab:

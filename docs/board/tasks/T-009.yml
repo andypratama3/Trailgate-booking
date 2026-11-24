@@ -9,8 +9,8 @@ reviewers: [tg-domain, Andy]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: []
-status: todo
-rework_round: 0
+status: in_review
+rework_round: 1
 branch: agent/tg-analyst/T-009
 acceptance:
   - "Skrip wawancara basecamp (5) dan TO (3): pembuka, pertanyaan inti, penutup"

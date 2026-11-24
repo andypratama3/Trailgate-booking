@@ -9,8 +9,8 @@ reviewers: [tg-architect, tg-domain]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: []
-status: todo
-rework_round: 0
+status: done
+rework_round: 1
 branch: agent/tg-analyst/T-003
 acceptance:
   - "Setiap FR-01..FR-41 punya entri: id, judul, prd_ref (bagian §PRD), prioritas MoSCoW, fase"

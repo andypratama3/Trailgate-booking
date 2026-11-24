@@ -35,11 +35,12 @@ apps/api/app/**        (sisa setelah app/Domain/** dan app/Integrations/**)     
 apps/api/tests/**                                                              tg-backend
 apps/api/config/**  apps/api/bootstrap/**  apps/api/*.json  apps/api/*.xml     tg-devops
 apps/web/**            (sisa setelah (public)/** dan (console)/**)             tg-web
-docker-compose*.yml, Makefile, *.mk, .gitignore, README.md, .env.example, .env.testing  (root)  tg-devops
+docker-compose*.yml, Makefile, *.mk, .gitignore, .dockerignore, README.md, .env.example, .env.testing  (root)  tg-devops
 package.json, pnpm-workspace.yaml, pnpm-lock.yaml, tsconfig*.json                     (root)  tg-devops
 apps/api/**  (sisa setelah baris di atas: artisan, vite.config.js, composer.lock,        tg-devops
               resources/**, public/**, dotfiles; BUKAN app/Domain|Integrations, database/**, config/**)
 .omp/**  AGENTS.md  OWNERS.md                                                  orchestrator
+PROMPT.md (dihapus saat bootstrap → isi pindah ke docs/prd/PRD.md yang tetap milik tg-analyst)   orchestrator
 ```
 Alasan: §16.4 hanya memetakan path produk; file build/runtime dasar perlu owner eksplisit agar auditor
 tidak menandai commit tanpa pemilik. Perubahan memerlukan ADR bila menyentuh path yang sudah dipetakan.

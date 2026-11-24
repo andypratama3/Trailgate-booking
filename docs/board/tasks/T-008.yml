@@ -20,6 +20,9 @@ acceptance:
   - "CI gagal bila tes isolasi tenant gagal (hook untuk T-101) — sediakan job placeholder yang jelas"
   - "Level phpstan disepakati dan dicatat di ADR (rujuk T-005 ADR-006/ADR terkait); jangan pakai level yang tidak disepakati"
   - "Workflow dapat dijalankan lokal (Makefile target) dan di CI"
+  - "Image produksi (infra/) berjalan sebagai NON-ROOT (www-data/node) — temuan tg-security T-001 F1B-4; image dev boleh tetap root."
+  - "Base image dipin tag penuh/digest dan `pecl install redis` dipin versi — temuan tg-security T-001 F1B-5."
+  - "Secret scan punya allowlist TERTULIS untuk kunci uji `base64:XVk01Eub...` di riwayat commit f29df88 (alasan: kunci uji, sudah diganti forward, lihat O-7). Tanpa allowlist, CI gagal pada hari pertama."
 artifacts_expected:
   - .github/workflows/*.yml
   - pint.json / phpstan.neon / eslint config (bila belum ada dari T-001)
