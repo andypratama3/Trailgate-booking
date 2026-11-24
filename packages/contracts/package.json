@@ -1,0 +1,6 @@
+{
+  "name": "@trailgate/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Kontrak API: spesifikasi OpenAPI dan tipe TypeScript yang di-generate. Milik tg-architect."
+}

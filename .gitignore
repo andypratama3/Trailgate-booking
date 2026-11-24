@@ -1,0 +1,55 @@
+# --- Dependencies ---
+vendor/
+node_modules/
+.pnpm-store/
+
+# --- Build output ---
+dist/
+build/
+out/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+*.tsbuildinfo.*
+
+# --- Environment & secrets (never commit real env files) ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+# .env.testing boleh masuk repo (nilai uji, tanpa rahasia); .env asli tetap diabaikan.
+!.env.testing
+
+# --- Laravel runtime artifacts ---
+# Sudah ditangani apps/api/.gitignore + file keep (`*` + `!.gitignore`) di dalam
+# apps/api/storage/** dan apps/api/bootstrap/cache/. Jangan abaikan direktori itu dari root,
+# kalau tidak keep-file-nya ikut hilang dan direktori runtime tidak ada lagi setelah clone.
+
+# --- Logs & coverage ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+coverage/
+.nyc_output/
+
+# --- Test/tool caches ---
+.phpunit.result.cache
+.php-cs-fixer.cache
+.playwright/
+playwright-report/
+test-results/
+blob-report/
+.vitest-reports/
+.turbo/
+
+# --- Editors / OS ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Local scratch ---
+tmp/
+.cache/

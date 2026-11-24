@@ -1,0 +1,84 @@
+name: trailgate
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    working_dir: /var/www/html
+    command: >
+      sh -c "[ -f .env ] || cp .env.example .env;
+             grep -q '^APP_KEY=.' .env || php artisan key:generate --force;
+             [ -d vendor ] || composer install --no-interaction --prefer-dist;
+             php artisan serve --host=0.0.0.0 --port=8000"
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: ${MYSQL_DATABASE:-trailgate}
+      DB_USERNAME: ${MYSQL_USER:-trailgate}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-local-dev-only}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./apps/api:/var/www/html
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    working_dir: /app
+    command: >
+      sh -c "pnpm install --frozen-lockfile &&
+             pnpm --filter @trailgate/web exec next dev -H 0.0.0.0 -p 3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+    volumes:
+      - ./:/app
+      - web_node_modules:/app/node_modules
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-dev-only-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-trailgate}
+      MYSQL_USER: ${MYSQL_USER:-trailgate}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-local-dev-only}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mysql_data:
+  web_node_modules:

@@ -1,0 +1,6 @@
+{
+  "name": "@trailgate/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Token desain tunggal (warna, tipografi, spasi, radius, bayangan, motion) → CSS variables. Milik tg-ux."
+}

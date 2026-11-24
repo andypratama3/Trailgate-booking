@@ -1,0 +1,17 @@
+{
+  "name": "trailgate",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TrailGate monorepo — booking jalur pendakian berbasis kuota.",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @trailgate/web dev",
+    "build": "pnpm --filter @trailgate/web build",
+    "dev:pos": "pnpm --filter @trailgate/pos dev",
+    "build:pos": "pnpm --filter @trailgate/pos build",
+    "typecheck": "pnpm -r --if-present run typecheck"
+  }
+}
