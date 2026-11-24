@@ -145,7 +145,7 @@ Bukti repo:
 - Riwayat git `master`: `git branch -a` hanya menampilkan `master` — tidak ada `integration`.
 - `docs/board/STATUS.md` — rencana gelombang W0 mencantumkan T-002 sebagai tugas W0 Orchestrator.
 
-Commit P0 yang dicakup deviasi ini (urutan kronologis, per `git log`):
+Commit P0 yang dicakup deviasi ini (urutan kronologis, per `git log`; sinkron terakhir di `0fd4f1dc`):
 
 | commit | ringkasan |
 |---|---|
@@ -156,6 +156,9 @@ Commit P0 yang dicakup deviasi ini (urutan kronologis, per `git log`):
 | `2bc073a` | feat(scaffold): Laravel 12 application core, lockfiles, framework config (T-001) |
 | `7d96f744` | docs(requirements): FR/AC rework round 1 — coverage + measurable ACs (T-003) |
 | `05964961` | docs(adr): ADR-007 governance deviations + ownership map completion (T-002) |
+| `dc589982` | fix(scaffold): T-001 rework round 1 — G2 phpstan, secret hygiene, hardening |
+| `9124765b` | chore(board): status sync, archived task reports, ownership nits (T-002 rework r2) |
+| `0fd4f1dc` | docs(adr): amend ADR-007 deviasi 3 to cover all of P0 until T-008 adds CI |
 
 **Keputusan**
 

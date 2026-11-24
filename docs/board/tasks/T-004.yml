@@ -9,8 +9,8 @@ reviewers: [tg-analyst, tg-architect]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: [T-003]
-status: todo
-rework_round: 0
+status: changes_requested
+rework_round: 1
 branch: agent/tg-domain/T-004
 acceptance:
   - "Skema Mountain Pack (JSON) terdefinisi: mountain, routes[], gates[], checkpoints[], camp_areas[], quota, requirement_rules[], sources[]"

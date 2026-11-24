@@ -21,7 +21,7 @@ acceptance:
   - "Copy Bahasa Indonesia untuk CTA dan label kunci; tidak ada klaim tanpa sumber"
   - "Catatan aksesibilitas: target WCAG 2.2 AA, dukungan layout ponsel kecil"
 artifacts_expected:
-  - docs/ux/design-tokens.md (+ file token mentah)
+  - docs/ux/design-tokens.md (spesifikasi; file token mentah machine-readable → `packages/design-tokens` milik T-010)
   - docs/ux/wireframes/*.md (booking, status, closure-desk, pos)
   - docs/ux/accessibility.md
 notes: >

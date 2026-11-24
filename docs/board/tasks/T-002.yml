@@ -4,7 +4,7 @@ fr: []
 epic: P0
 phase: P0
 owner: orchestrator
-co_owner: tg-analyst
+co_owner: [tg-analyst, tg-architect]
 reviewers: [tg-architect, tg-reviewer]
 verifier: tg-auditor
 auditor: tg-auditor

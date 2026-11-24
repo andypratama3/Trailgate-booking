@@ -9,8 +9,8 @@ reviewers: [tg-architect, tg-security]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: []
-status: todo
-rework_round: 0
+status: in_review
+rework_round: 2
 branch: agent/tg-devops/T-001
 acceptance:
   - "Struktur sesuai PRD §9.1: apps/api, apps/web, apps/pos, packages/contracts, packages/design-tokens, packages/ui, docs/, infra/"
@@ -31,4 +31,4 @@ artifacts_expected:
   - README.md
 notes: >
   Versi paket TIDAK dipatok di PRD; agent wajib cek Packagist/npm dan mencatat versi ter-pin
-  sebagai kandidat ADR-001 (tg-architect). Jangan mengubah path milik owner lain.
+  sebagai ADR-006 (versi paket; penomoran T-005: ADR-001 = tenancy). Jangan mengubah path milik owner lain.

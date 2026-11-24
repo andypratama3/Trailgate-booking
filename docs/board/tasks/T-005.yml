@@ -9,8 +9,8 @@ reviewers: [tg-security, tg-data]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: [T-003]
-status: todo
-rework_round: 0
+status: done
+rework_round: 1
 branch: agent/tg-architect/T-005
 acceptance:
   - "ADR-001 Tenancy: SaaS multi-tenant satu DB, kolom tenant_id + global scope; TENANT_MODE=single sebagai build sama (D1). Alternatif DB-per-tenant ditolak dengan alasan."
