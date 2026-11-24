@@ -69,6 +69,9 @@ docker compose up --build
 - MySQL: `localhost:3306`, Redis: `localhost:6379` (port bisa diubah lewat `.env`).
 - Worker: `php artisan queue:work` memproses queue Redis. Scheduler belum dijalankan di dev; jadwal menyusul di T-008.
 - Port api/web/MySQL/Redis hanya di-bind ke `127.0.0.1` (tidak terekspos ke jaringan).
+- `api` menjalankan `php artisan serve --no-reload`. Tanpa flag itu `ServeCommand` membuang
+  `DB_HOST`/`REDIS_HOST` dari environment proses `php -S`, jadi aplikasi memakai `127.0.0.1`
+  dari `.env` dan koneksi ke service `mysql`/`redis` gagal.
 
 ### Lokal (PHP & Node di host, MySQL+Redis dari Docker)
 

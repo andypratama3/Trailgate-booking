@@ -3,7 +3,7 @@
 FROM php:8.3-cli-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git unzip libzip-dev libpng-dev libjpeg-turbo-dev \
+        git unzip libzip-dev libpng-dev libjpeg62-turbo-dev \
         $PHPIZE_DEPS \
     && docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql bcmath zip gd pcntl \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/* /tmp/pear
 
-# Digunakan bersama tag penuh (bukan `composer:2`); digest akan dipin di ADR-006.
+# Image composer dipin ke tag penuh (bukan `composer:2`); pin digest menunggu ADR-006.
 COPY --from=composer:2.7.9 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_ALLOW_SUPERUSER=1

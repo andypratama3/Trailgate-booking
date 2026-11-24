@@ -19,11 +19,13 @@ services:
       context: .
       dockerfile: docker/api/Dockerfile
     working_dir: /var/www/html
+    # --no-reload wajib di container: tanpa flag itu ServeCommand membuang DB_HOST/REDIS_HOST
+    # dari environment proses `php -S`, sehingga .env (127.0.0.1) yang dipakai dan koneksi gagal.
     command: >
       sh -c "[ -f .env ] || cp .env.example .env;
              grep -q '^APP_KEY=.' .env || php artisan key:generate --force;
              [ -d vendor ] || composer install --no-interaction --prefer-dist;
-             php artisan serve --host=0.0.0.0 --port=8000"
+             php artisan serve --host=0.0.0.0 --port=8000 --no-reload"
     environment: *api-environment
     volumes:
       - ./apps/api:/var/www/html
