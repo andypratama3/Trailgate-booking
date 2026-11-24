@@ -1,0 +1,149 @@
+{
+  "$schema": "./schema/mountain-pack.schema.json",
+  "pack_version": "1.0.0",
+  "label": "DEMO",
+  "verified": false,
+  "generated_at": "2026-11-24",
+  "mountain": {
+    "slug": "gede-pangrango",
+    "name": "Gunung Gede-Pangrango",
+    "manager": "BB TNGGP",
+    "booking_systems": [
+      {
+        "name": "booking.gedepangrango.org",
+        "url": "https://booking.gedepangrango.org",
+        "source_url": "https://booking.gedepangrango.org",
+        "verified_at": "2026-11-24",
+        "note": "PRD §2.1 mencatat booking.gedepangrango.org pada kolom Sistem booking TNGGP; §2.1 tidak menyatakan kanal ini satu-satunya atau resmi. [VERIFIKASI]"
+      }
+    ],
+    "notes": [
+      {
+        "text": "Pendaki ilegal dikenai sanksi/daftar hitam; SIMAKSI diganti barcode berisi data pendaftaran (PRD §2.1).",
+        "source_url": "https://liputan6.com/news/read/6039872/tertangkap-basah-2658-pendaki-ilegal-gunung-gede-pangrango-didenda-5-kali-lipat",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Dibuka lagi 13 Apr 2026 dengan gelang RFID dan kuota 300/hari dari 3 pintu; jendela pembukaan booking tidak tercatat di PRD §2.1. [VERIFIKASI]",
+        "source_url": "https://metrotvnews.com/read/NP6CL7V9-pendakian-gunung-gede-pangrango-dibuka-13-april-pendaki-bakal-pakai-rfid",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Skripsi UGM 2024 menilai sistem booking TNGGP belum efektif dari sisi ketersediaan dan kecukupan data (PRD §2.1). Opini riset, tidak dijadikan requirement_rules.",
+        "source_url": "https://etd.repository.ugm.ac.id/penelitian/detail/234353",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Nama 3 pintu masuk, jalur, pos, dan camp area tidak tercatat di PRD §2 → dibiarkan kosong, bukan diisi taksiran.",
+        "source_url": "https://metrotvnews.com/read/NP6CL7V9-pendakian-gunung-gede-pangrango-dibuka-13-april-pendaki-bakal-pakai-rfid",
+        "verified_at": "2026-11-24"
+      }
+    ]
+  },
+  "routes": [],
+  "gates": [],
+  "checkpoints": [],
+  "camp_areas": [],
+  "quota": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "capacity_per_day": 300,
+      "unit": "hikers_per_day",
+      "gate_count": 3,
+      "open_schedule": null,
+      "source_url": "https://metrotvnews.com/read/NP6CL7V9-pendakian-gunung-gede-pangrango-dibuka-13-april-pendaki-bakal-pakai-rfid",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1: dibuka lagi 13 Apr 2026 dengan gelang RFID, kuota 300/hari dari 3 pintu. Jendela pembukaan booking tidak tercatat di §2."
+    }
+  ],
+  "closure_drafts": [
+    {
+      "status": "draft",
+      "route_slug": null,
+      "mode": "block_new_bookings",
+      "starts_at": "2026-09-01",
+      "ends_at": null,
+      "note": "PRD §2.1: ditutup tanpa batas waktu per 1 Sep 2026; status terkini [VERIFIKASI]. Penutupan sebelumnya pada 2026: libur panjang, Iduladha 27–28 Mei, JOTR 23–29 Jul, kebakaran 7–11 Agu (diperpanjang).",
+      "source_url": "https://news.okezone.com/read/2026/09/01/337/3239391",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    }
+  ],
+  "requirement_rules": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "required_documents",
+      "params": {
+        "documents": [
+          "barcode_berisi_data_pendaftaran"
+        ]
+      },
+      "severity": "block",
+      "source_url": "https://liputan6.com/news/read/6039872/tertangkap-basah-2658-pendaki-ilegal-gunung-gede-pangrango-didenda-5-kali-lipat",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: SIMAKSI diganti barcode berisi data pendaftaran. Nama dokumen di params adalah label internal pack, bukan istilah resmi sumber [ASUMSI]; status kanal barcode [VERIFIKASI]."
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://booking.gedepangrango.org",
+      "title": "booking.gedepangrango.org (disebut PRD §2.1 pada kolom Sistem booking)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Kanal booking yang disebut PRD §2.1 pada kolom Sistem booking TNGGP. URL diambil dari PRD §2.1, bukan hasil akses langsung; accessed_at = tanggal akses Lampiran A (2026-11-24). Status resmi [VERIFIKASI].",
+      "kind": "official_site"
+    },
+    {
+      "id": "S2",
+      "url": "https://metrotvnews.com/read/NP6CL7V9-pendakian-gunung-gede-pangrango-dibuka-13-april-pendaki-bakal-pakai-rfid",
+      "title": "TNGGP dibuka lagi 13 Apr 2026 dengan gelang RFID dan kuota 300/hari dari 3 pintu",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Dibuka lagi 13 Apr 2026, gelang RFID, kuota 300/hari dari 3 pintu (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S3",
+      "url": "https://liputan6.com/news/read/6039872/tertangkap-basah-2658-pendaki-ilegal-gunung-gede-pangrango-didenda-5-kali-lipat",
+      "title": "Barcode menggantikan SIMAKSI pada pendaftaran pendakian TNGGP",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Barcode berisi data pendaftaran menggantikan SIMAKSI; pendaki ilegal dikenai sanksi/daftar hitam (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S4",
+      "url": "https://antaranews.com/berita/5618457",
+      "title": "Penutupan jalur TNGGP (bagian rangkaian JOTR, Agustus 2026, 1 Sep 2026)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Penutupan TNGGP: JOTR 23–29 Jul, kebakaran 7–11 Agu, ditutup tanpa batas waktu per 1 Sep 2026 (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S5",
+      "url": "https://antaranews.com/berita/5685452",
+      "title": "Penutupan jalur TNGGP (sumber kedua rangkaian penutupan 2026)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Dilaporkan pada rangkaian penutupan TNGGP 2026 yang sama dengan S4 (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S6",
+      "url": "https://news.okezone.com/read/2026/09/01/337/3239391",
+      "title": "TNGGP ditutup tanpa batas waktu per 1 Sep 2026",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Penutupan TNGGP tanpa batas waktu per 1 Sep 2026; status terkini [VERIFIKASI] (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S7",
+      "url": "https://etd.repository.ugm.ac.id/penelitian/detail/234353",
+      "title": "Evaluasi sistem booking TNGGP (skripsi UGM, 2024)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Menilai sistem booking TNGGP belum efektif dari sisi ketersediaan dan kecukupan data (PRD §2.1; Lampiran A). Opini riset, tidak menjadi requirement_rules.",
+      "kind": "research"
+    }
+  ]
+}

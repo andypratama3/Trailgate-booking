@@ -1,0 +1,198 @@
+{
+  "$schema": "./schema/mountain-pack.schema.json",
+  "pack_version": "1.0.0",
+  "label": "DEMO",
+  "verified": false,
+  "generated_at": "2026-11-24",
+  "mountain": {
+    "slug": "semeru",
+    "name": "Gunung Semeru",
+    "manager": "BB TNBTS",
+    "booking_systems": [
+      {
+        "name": "booking.bromotenggersemeru.org",
+        "url": "https://booking.bromotenggersemeru.org",
+        "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+        "verified_at": "2026-11-24",
+        "note": "PRD §2.1 mencatat domain yang berbeda antar sumber. Dua kandidat disimpan apa adanya; URL diambil dari PRD §2.1, bukan hasil akses langsung (accessed_at = tanggal akses Lampiran A). Host mana yang hidup belum diverifikasi. [VERIFIKASI]"
+      },
+      {
+        "name": "bromotenggersemeru.id",
+        "url": "https://bromotenggersemeru.id",
+        "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+        "verified_at": "2026-11-24",
+        "note": "PRD §2.1 mencatat domain yang berbeda antar sumber. URL diambil dari PRD §2.1, bukan hasil akses langsung (accessed_at = tanggal akses Lampiran A). Host mana yang hidup belum diverifikasi. [VERIFIKASI]"
+      }
+    ],
+    "notes": [
+      {
+        "text": "Check-in di Ranu Pani dengan bukti booking, identitas, dan surat sehat (PRD §2.1).",
+        "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Status terkini jalur: dilaporkan ditutup lagi awal Sep 2026 akibat karhutla Jawa Timur. [VERIFIKASI]",
+        "source_url": "https://jawapos.com/berita-daerah/2609040281/karhutla-jatim-meluas-pendakian-semeru-dan-kawah-ijen-resmi-ditutup",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Elevasi, nama gate, dan area camp tidak tercatat di PRD §2 → dibiarkan kosong, bukan diisi taksiran.",
+        "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+        "verified_at": "2026-11-24"
+      }
+    ]
+  },
+  "routes": [
+    {
+      "slug": "ranu-pani",
+      "name": "Jalur pendakian Ranu Pani (batas Ranu Kumbolo)",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "note": "Slug dan nama jalur bukan istilah dari sumber: §2.1 hanya mencatat check-in di Ranu Pani dan batas pendakian sampai Ranu Kumbolo → slug/nama ini label internal pack [ASUMSI], bukan nama jalur resmi. [VERIFIKASI]"
+    }
+  ],
+  "gates": [],
+  "checkpoints": [
+    {
+      "slug": "ranu-pani",
+      "name": "Ranu Pani (check-in)",
+      "route_slug": "ranu-pani",
+      "kind": "pos",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1: check-in dengan bukti booking, identitas, surat sehat. kind 'pos' adalah label internal pack, bukan istilah sumber [ASUMSI]."
+    },
+    {
+      "slug": "ranu-kumbolo",
+      "name": "Ranu Kumbolo (batas pendakian)",
+      "route_slug": "ranu-pani",
+      "kind": "limit",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1: batas pendakian hanya sampai Ranu Kumbolo. §2.1 tidak menyebutnya sebagai camp area → tidak dimasukkan ke camp_areas; kind 'limit' adalah label internal pack [ASUMSI]."
+    }
+  ],
+  "camp_areas": [],
+  "quota": [
+    {
+      "scope": "route",
+      "route_slug": "ranu-pani",
+      "capacity_per_day": 200,
+      "unit": "hikers_per_day",
+      "gate_count": null,
+      "open_schedule": {
+        "period": "monthly_calendar"
+      },
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1: kuota 200/hari; kuota dibuka per bulan kalender. Batas hanya sampai Ranu Kumbolo."
+    }
+  ],
+  "closure_drafts": [
+    {
+      "status": "draft",
+      "route_slug": "ranu-pani",
+      "mode": "block_new_bookings",
+      "starts_at": "2025-11-19",
+      "ends_at": "2026-04-24",
+      "note": "PRD §2.1: tutup sejak 19 Nov 2025, dibuka lagi 24 Apr 2026.",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    },
+    {
+      "status": "draft",
+      "route_slug": null,
+      "mode": "block_new_bookings",
+      "starts_at": null,
+      "ends_at": null,
+      "note": "PRD §2.1: dilaporkan ditutup lagi awal Sep 2026 akibat karhutla Jawa Timur; tanggal pasti tidak dicatat di §2. [VERIFIKASI]",
+      "source_url": "https://jawapos.com/berita-daerah/2609040281/karhutla-jatim-meluas-pendakian-semeru-dan-kawah-ijen-resmi-ditutup",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    }
+  ],
+  "requirement_rules": [
+    {
+      "scope": "route",
+      "route_slug": "ranu-pani",
+      "type": "booking_cutoff_hours",
+      "params": {
+        "hours": 48
+      },
+      "severity": "block",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "effective_from": "2026-04-24",
+      "effective_to": null,
+      "note": "PRD §2.1: tiket online minimal H-2. Nilai 48 jam adalah interpretasi kami atas H-2 [ASUMSI]; sumber tidak menulis angka jam. [VERIFIKASI]"
+    },
+    {
+      "scope": "route",
+      "route_slug": "ranu-pani",
+      "type": "required_documents",
+      "params": {
+        "documents": [
+          "bukti_booking",
+          "identitas",
+          "surat_sehat"
+        ]
+      },
+      "severity": "block",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "effective_from": "2026-04-24",
+      "effective_to": null,
+      "note": "PRD §2.1: check-in di Ranu Pani dengan bukti booking, identitas, surat sehat."
+    },
+    {
+      "scope": "route",
+      "route_slug": "ranu-pani",
+      "type": "reschedule_policy",
+      "params": {
+        "members_immutable": true,
+        "max_group_reschedules_per_day": 5
+      },
+      "severity": "block",
+      "source_url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "verified_at": "2026-11-24",
+      "effective_from": "2026-04-24",
+      "effective_to": null,
+      "note": "PRD §2.1: reschedule — anggota tidak boleh diganti, maksimal 5 kelompok per hari."
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://metrotvnews.com/read/b2lC694z-mulai-24-april-gunung-semeru-dibuka-lagi-ini-aturannya",
+      "title": "Mulai 24 April Gunung Semeru dibuka lagi: kuota 200/hari, tiket H-2, aturan reschedule",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Dibuka 24 Apr 2026 setelah tutup sejak 19 Nov 2025; batas hanya sampai Ranu Kumbolo, kuota 200/hari dibuka per bulan kalender; check-in Ranu Pani dengan bukti booking, identitas, surat sehat; anggota reschedule tidak boleh diganti, maksimal 5 kelompok/hari (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S2",
+      "url": "https://jawapos.com/berita-daerah/2609040281/karhutla-jatim-meluas-pendakian-semeru-dan-kawah-ijen-resmi-ditutup",
+      "title": "Karhutla Jatim meluas: pendakian Semeru dan Kawah Ijen resmi ditutup",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Penutupan kembali Semeru awal Sep 2026 akibat karhutla (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S3",
+      "url": "https://booking.bromotenggersemeru.org",
+      "title": "booking.bromotenggersemeru.org — kandidat situs booking TNBTS (PRD §2.1)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Salah satu domain booking TNBTS yang disebut PRD §2.1; domain berbeda antar sumber. URL diambil dari PRD §2.1, bukan hasil akses langsung (accessed_at = tanggal akses Lampiran A). [VERIFIKASI]",
+      "kind": "official_site"
+    },
+    {
+      "id": "S4",
+      "url": "https://bromotenggersemeru.id",
+      "title": "bromotenggersemeru.id — kandidat situs booking TNBTS (PRD §2.1)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Kandidat domain booking TNBTS kedua yang disebut PRD §2.1. URL diambil dari PRD §2.1, bukan hasil akses langsung (accessed_at = tanggal akses Lampiran A). [VERIFIKASI]",
+      "kind": "official_site"
+    }
+  ]
+}

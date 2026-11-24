@@ -1,0 +1,71 @@
+{
+  "$schema": "../schema/mountain-pack.schema.json",
+  "pack_version": "1.0.0",
+  "label": "DEMO",
+  "verified": false,
+  "generated_at": "2026-11-24",
+  "mountain": {
+    "slug": "fixture-route-scope-unresolved",
+    "name": "Fixture — bukan paket produksi",
+    "manager": "-",
+    "booking_systems": [],
+    "notes": []
+  },
+  "routes": [],
+  "gates": [],
+  "checkpoints": [],
+  "camp_areas": [],
+  "quota": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "capacity_per_day": 1,
+      "unit": "hikers_per_day",
+      "gate_count": null,
+      "open_schedule": null,
+      "source_url": "https://example.invalid/fixture-sumber",
+      "verified_at": "2026-11-24",
+      "note": "Fixture: nilai kuota bukan data domain."
+    }
+  ],
+  "requirement_rules": [
+    {
+      "scope": "route",
+      "route_slug": "jalur-hantu",
+      "type": "max_group_size",
+      "params": {
+        "max_group_size": 10
+      },
+      "severity": "block",
+      "source_url": "https://example.invalid/fixture-sumber",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "Fixture negatif: scope=route dengan route_slug yang tidak ada di routes[] → validator harus menolak."
+    },
+    {
+      "scope": "route",
+      "route_slug": null,
+      "type": "min_group_size",
+      "params": {
+        "min_group_size": 1
+      },
+      "severity": "warn",
+      "source_url": "https://example.invalid/fixture-sumber",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "Fixture negatif: scope=route tanpa route_slug → validator harus menolak."
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://example.invalid/fixture-sumber",
+      "title": "Fixture — bukan sumber nyata",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Fixture negatif untuk validator; tidak ada klaim domain nyata.",
+      "kind": "news"
+    }
+  ]
+}

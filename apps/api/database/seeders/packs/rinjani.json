@@ -1,0 +1,241 @@
+{
+  "$schema": "./schema/mountain-pack.schema.json",
+  "pack_version": "1.0.0",
+  "label": "DEMO",
+  "verified": false,
+  "generated_at": "2026-11-24",
+  "mountain": {
+    "slug": "rinjani",
+    "name": "Gunung Rinjani",
+    "manager": "BTNGR",
+    "booking_systems": [
+      {
+        "name": "eRinjani (Android/iOS)",
+        "url": null,
+        "source_url": "https://metrotvnews.com/read/NLMC8XXP-pendakian-gunung-rinjani-dibuka-terbatas-mulai-hari-ini",
+        "verified_at": "2026-11-24",
+        "note": "PRD §2.1: aplikasi eRinjani. Lampiran A tidak mencantumkan URL aplikasi → url dibiarkan null."
+      }
+    ],
+    "notes": [
+      {
+        "text": "SOP revisi 2025: TO wajib memastikan peralatan keselamatan (PRD §2.1).",
+        "source_url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Ditutup awal 2026; booking eRinjani dibuka 6 Mar 2026 pukul 08.00 WITA (PRD §2.1).",
+        "source_url": "https://metrotvnews.com/read/k8oCQ62w-tiket-pendakian-gunung-rinjani-dibuka-6-maret-2026",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Rasio guide dilaporkan 5 lalu turun jadi 4 sejak Jan 2026 → rule memakai 4 (PRD §2.1, §6.3). [VERIFIKASI ke SOP resmi terbaru]",
+        "source_url": "https://detik.com/bali/wisata/d-8053403",
+        "verified_at": "2026-11-24"
+      }
+    ]
+  },
+  "routes": [
+    {
+      "slug": "senaru",
+      "name": "Jalur Senaru",
+      "source_url": "https://antaranews.com/berita/5769593/jalur-pendakian-senaru-gunung-rinjani-kembali-dibuka",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1: jalur Senaru dibuka lagi sekitar 3 Okt 2026. Gate/pos/checkpoint jalur ini tidak tercatat di §2 → dibiarkan kosong."
+    }
+  ],
+  "gates": [],
+  "checkpoints": [],
+  "camp_areas": [],
+  "quota": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "capacity_per_day": null,
+      "unit": "hikers_per_day",
+      "gate_count": null,
+      "open_schedule": {
+        "opened_at": "2026-03-06T08:00:00+08:00",
+        "note": "Booking eRinjani dibuka 6 Mar 2026 pukul 08.00 WITA"
+      },
+      "source_url": "https://metrotvnews.com/read/k8oCQ62w-tiket-pendakian-gunung-rinjani-dibuka-6-maret-2026",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1 menyebut pembukaan terbatas tetapi tidak mencatat angka kuota harian → capacity_per_day dibiarkan null, bukan diisi taksiran. [VERIFIKASI]"
+    }
+  ],
+  "closure_drafts": [
+    {
+      "status": "draft",
+      "route_slug": null,
+      "mode": "block_new_bookings",
+      "starts_at": "2026-09-01",
+      "ends_at": null,
+      "note": "PRD §2.1: dibuka terbatas 1 Sep 2026 dengan booking eRinjani dihentikan sementara karena risiko kebakaran; booking yang sudah dibayar tetap dilayani. Jalur Senaru dibuka lagi sekitar 3 Okt 2026. [VERIFIKASI]",
+      "source_url": "https://metrotvnews.com/read/NLMC8XXP-pendakian-gunung-rinjani-dibuka-terbatas-mulai-hari-ini",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    },
+    {
+      "status": "draft",
+      "route_slug": null,
+      "mode": "block_new_bookings",
+      "starts_at": null,
+      "ends_at": "2026-03-06",
+      "note": "PRD §2.1: ditutup awal 2026; booking dibuka kembali 6 Mar 2026. Tanggal penutupan pasti tidak dicatat di §2.",
+      "source_url": "https://metrotvnews.com/read/k8oCQ62w-tiket-pendakian-gunung-rinjani-dibuka-6-maret-2026",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    }
+  ],
+  "requirement_rules": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "health_cert_max_age_hours",
+      "params": {
+        "hours": 24
+      },
+      "severity": "block",
+      "source_url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: surat sehat diperoleh sehari sebelum mendaki. Nilai 24 jam adalah interpretasi kami atas 'sehari sebelum' [ASUMSI]; sumber tidak menulis angka jam. [VERIFIKASI]"
+    },
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "minor_requires_guardian_consent",
+      "params": {
+        "under_age": 17
+      },
+      "severity": "block",
+      "source_url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: di bawah 17 tahun wajib didampingi dan izin ortu."
+    },
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "informed_consent_required",
+      "params": {
+        "required": true
+      },
+      "severity": "block",
+      "source_url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: informed consent + data asuransi (SOP revisi 2025)."
+    },
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "insurance_info_required",
+      "params": {
+        "required": true
+      },
+      "severity": "block",
+      "source_url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: informed consent + data asuransi (SOP revisi 2025)."
+    },
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "beginner_requires_guide",
+      "params": {
+        "required": true
+      },
+      "severity": "block",
+      "source_url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: pemula wajib didampingi guide/pendaki berpengalaman."
+    },
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "guide_ratio",
+      "params": {
+        "max_hikers_per_guide": 4
+      },
+      "severity": "block",
+      "source_url": "https://detik.com/bali/wisata/d-8053403",
+      "verified_at": "2026-11-24",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "note": "PRD §2.1: 1 guide terdata maksimal 5 pendaki, dilaporkan turun jadi 4 sejak Jan 2026 → rule memakai 4 [ASUMSI]. effective_from 2026-01-01 juga [ASUMSI]: sumber hanya menulis 'sejak Jan 2026'. [VERIFIKASI ke SOP resmi terbaru]"
+    },
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "porter_ratio",
+      "params": {
+        "foreign": 2,
+        "domestic": 3
+      },
+      "severity": "block",
+      "source_url": "https://detik.com/bali/wisata/d-8053403",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: 1 porter maksimal 2 WNA atau 3 WNI."
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://detik.com/bali/wisata/d-8053403",
+      "title": "Rinjani SOP dan rasio guide/porter",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "SOP revisi 2025 dan rasio guide/porter (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S2",
+      "url": "https://lestari.kompas.com/read/2025/08/13/225800186/gunung-rinjani-kembali-dibuka-tapi-pengunjung-tak-bisa-sembarangan-mendaki",
+      "title": "Rinjani dibuka kembali dengan syarat; rasio guide/porter",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Surat sehat sehari sebelum mendaki, informed consent + data asuransi, izin ortu di bawah 17 tahun, pemula wajib didampingi (PRD §2.1, §6.3; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S3",
+      "url": "https://metrotvnews.com/read/k8oCQ62w-tiket-pendakian-gunung-rinjani-dibuka-6-maret-2026",
+      "title": "Tiket pendakian Rinjani dibuka 6 Mar 2026 pukul 08.00 WITA",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Penutupan awal 2026 dan pembukaan booking eRinjani 6 Mar 2026 (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S4",
+      "url": "https://metrotvnews.com/read/NLMC8XXP-pendakian-gunung-rinjani-dibuka-terbatas-mulai-hari-ini",
+      "title": "Pendakian Rinjani dibuka terbatas mulai 1 Sep 2026, booking dihentikan sementara",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Dibuka terbatas dengan booking eRinjani dihentikan sementara karena risiko kebakaran; booking terbayar tetap dilayani (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S5",
+      "url": "https://antaranews.com/berita/5769593/jalur-pendakian-senaru-gunung-rinjani-kembali-dibuka",
+      "title": "Jalur pendakian Senaru Gunung Rinjani kembali dibuka",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Jalur Senaru dibuka lagi sekitar 3 Okt 2026 (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S6",
+      "url": "https://retizen.republika.co.id/posts/777454",
+      "title": "Opini tata kelola dan daya dukung pendakian",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Opini (kind=opinion). Dideklarasikan untuk transparansi tetapi TIDAK dipakai sebagai sumber requirement_rules.",
+      "kind": "opinion"
+    }
+  ]
+}

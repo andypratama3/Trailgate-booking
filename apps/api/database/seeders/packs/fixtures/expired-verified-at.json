@@ -1,0 +1,57 @@
+{
+  "$schema": "../schema/mountain-pack.schema.json",
+  "pack_version": "1.0.0",
+  "label": "DEMO",
+  "verified": false,
+  "generated_at": "2026-11-24",
+  "mountain": {
+    "slug": "fixture-expired-verified-at",
+    "name": "Fixture — bukan paket produksi",
+    "manager": "-",
+    "booking_systems": [],
+    "notes": []
+  },
+  "routes": [],
+  "gates": [],
+  "checkpoints": [],
+  "camp_areas": [],
+  "quota": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "capacity_per_day": 1,
+      "unit": "hikers_per_day",
+      "gate_count": null,
+      "open_schedule": null,
+      "source_url": "https://example.invalid/fixture-sumber",
+      "verified_at": "2026-11-24",
+      "note": "Fixture: nilai kuota bukan data domain."
+    }
+  ],
+  "requirement_rules": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "guide_ratio",
+      "params": {
+        "max_hikers_per_guide": 1
+      },
+      "severity": "block",
+      "source_url": "https://example.invalid/fixture-sumber",
+      "verified_at": "2025-01-01",
+      "effective_from": "2025-01-01",
+      "effective_to": null,
+      "note": "Fixture negatif: verified_at kedaluwarsa (> 90 hari) → validator harus menolak kecuali --max-age-days dinaikkan (PRD §6.1)."
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://example.invalid/fixture-sumber",
+      "title": "Fixture — bukan sumber nyata",
+      "accessed_at": "2025-01-01",
+      "paraphrase": "Fixture negatif untuk validator; tidak ada klaim domain nyata.",
+      "kind": "news"
+    }
+  ]
+}

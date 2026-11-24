@@ -1,0 +1,522 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trailgate.id/schema/mountain-pack.schema.json",
+  "title": "TrailGate Mountain Pack",
+  "description": "Format paket rujukan domain (gunung, jalur, gate, checkpoint, camp area, kuota, aturan persyaratan) untuk FR-37. Setiap entri yang mengklaim fakta domain WAJIB membawa source_url + verified_at (PRD §2.3 #7, §6.1). Pack yang belum dikonfirmasi tenant wajib verified=false dan label=DEMO (PRD §18.3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pack_version",
+    "label",
+    "verified",
+    "generated_at",
+    "mountain",
+    "routes",
+    "gates",
+    "checkpoints",
+    "camp_areas",
+    "quota",
+    "requirement_rules",
+    "sources"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "pack_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "label": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9_-]{1,31}$",
+      "description": "Label visibilitas pack (mis. DEMO). Validator menuntut DEMO kecuali dijalankan dengan --expected-label atau --allow-verified; mengganti label wajib ADR (docs/domain/mountain-pack.md §4 butir 6, §6.1, §7)."
+    },
+    "verified": {
+      "type": "boolean"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "mountain": {
+      "$ref": "#/$defs/mountain"
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/route"
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gate"
+      }
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/checkpoint"
+      }
+    },
+    "camp_areas": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/camp_area"
+      }
+    },
+    "quota": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Kuota per cakupan (mountain|route). Array karena PRD §10.2 mendefinisikan kuota per (route_id, date); satu pack dapat memuat beberapa jalur.",
+      "items": {
+        "$ref": "#/$defs/quota"
+      }
+    },
+    "closure_drafts": {
+      "type": "array",
+      "description": "Usulan penutupan jalur. Selalu draft: status konstan 'draft' dan confirmed_by wajib null sampai manusia mengonfirmasi (AGENTS.md aturan domain).",
+      "items": {
+        "$ref": "#/$defs/closure_draft"
+      }
+    },
+    "requirement_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/requirement_rule"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    }
+  },
+  "$defs": {
+    "note_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "source_url", "verified_at"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "mountain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "name", "manager", "booking_systems", "notes"],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manager": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nama pengelola persis seperti tertulis di PRD §2.1; akronim tidak diekspansi."
+        },
+        "booking_systems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/booking_system"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/note_claim"
+          }
+        }
+      }
+    },
+    "booking_system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url", "source_url", "verified_at", "note"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "name", "source_url", "verified_at", "note"],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "name", "route_slug", "source_url", "verified_at", "note"],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_slug": {
+          "type": ["string", "null"]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "name", "route_slug", "kind", "source_url", "verified_at", "note"],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_slug": {
+          "type": ["string", "null"]
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["pos", "junction", "limit", "summit", "camp", "other"]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "camp_area": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "name", "route_slug", "source_url", "verified_at", "note"],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_slug": {
+          "type": ["string", "null"]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "quota": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "route_slug",
+        "capacity_per_day",
+        "unit",
+        "gate_count",
+        "open_schedule",
+        "source_url",
+        "verified_at",
+        "note"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["mountain", "route"]
+        },
+        "route_slug": {
+          "type": ["string", "null"]
+        },
+        "capacity_per_day": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "null bila PRD tidak mencatat angka kuota. Dilarang mengisi taksiran."
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gate_count": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "open_schedule": {
+          "type": ["object", "null"]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "closure_draft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "route_slug",
+        "mode",
+        "starts_at",
+        "ends_at",
+        "note",
+        "source_url",
+        "verified_at",
+        "confirmed_by"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "draft"
+        },
+        "route_slug": {
+          "type": ["string", "null"]
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["block_new_bookings", "cancel_existing"],
+          "description": "Dua mode penutupan dari PRD §2.3 #2."
+        },
+        "starts_at": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "ends_at": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "confirmed_by": {
+          "type": "null",
+          "description": "Selalu null di draft; hanya manusia yang boleh mengisi."
+        }
+      }
+    },
+    "requirement_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "route_slug",
+        "type",
+        "params",
+        "severity",
+        "source_url",
+        "verified_at",
+        "effective_from",
+        "effective_to",
+        "note"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["tenant", "mountain", "route"]
+        },
+        "route_slug": {
+          "type": ["string", "null"]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "min_age_unaccompanied",
+            "minor_requires_guardian_consent",
+            "beginner_requires_guide",
+            "health_cert_max_age_hours",
+            "informed_consent_required",
+            "insurance_info_required",
+            "guide_ratio",
+            "porter_ratio",
+            "max_group_size",
+            "min_group_size",
+            "booking_window_days",
+            "booking_cutoff_hours",
+            "max_stay_nights",
+            "required_documents",
+            "reschedule_policy",
+            "refund_policy",
+            "quota_open_schedule"
+          ],
+          "description": "Daftar tipe PRD §6.2, tidak boleh ditambah tanpa ADR. Normalisasi: PRD §6.2 menulis `required_documents[]`, skema memakai `required_documents` (tanpa kurung siku) karena hanya nilainya yang disimpan."
+        },
+        "params": {
+          "type": "object",
+          "description": "Bentuk per tipe TIDAK ditegakkan skema; kontrak per tipe ada di docs/domain/mountain-pack.md §3.2 dan diverifikasi rule engine/importer (T-114)."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["block", "warn"]
+        },
+        "source_url": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "NOT NULL (PRD §6.1, §10.2). Wajib salah satu URL di sources[]."
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date",
+          "description": "NOT NULL. > 90 hari dari tanggal acuan = perlu verifikasi ulang (PRD §6.1)."
+        },
+        "effective_from": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "effective_to": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "null = berlaku tanpa batas akhir yang diketahui (§6.1 'masa berlaku')."
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "url", "title", "accessed_at", "paraphrase", "kind"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^S[0-9]+$"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Judul parafrase ringkas dari sumber (Lampiran A tidak memberi judul). Jangan menambah klaim yang tidak ada di sumber; sumber yang diambil dari PRD §2.1 (bukan dari akses langsung) ditandai statusnya di paraphrase."
+        },
+        "accessed_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "paraphrase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["regulation", "news", "research", "official_site", "opinion"],
+          "description": "kind=opinion TIDAK boleh dijadikan sumber requirement_rules; ditegakkan validate.php (fixture opinion-as-rule-source.json, docs/domain/mountain-pack.md §4 butir 3)."
+        }
+      }
+    }
+  }
+}

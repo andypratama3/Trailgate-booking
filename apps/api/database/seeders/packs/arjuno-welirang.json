@@ -1,0 +1,131 @@
+{
+  "$schema": "./schema/mountain-pack.schema.json",
+  "pack_version": "1.0.0",
+  "label": "DEMO",
+  "verified": false,
+  "generated_at": "2026-11-24",
+  "mountain": {
+    "slug": "arjuno-welirang",
+    "name": "Gunung Arjuno-Welirang",
+    "manager": "Tahura Raden Soerjo",
+    "booking_systems": [
+      {
+        "name": "SiPENERANG",
+        "url": null,
+        "source_url": "https://antaranews.com/berita/5756811",
+        "verified_at": "2026-11-24",
+        "note": "PRD §2.1: SiPENERANG. Lampiran A tidak mencantumkan URL → url dibiarkan null."
+      },
+      {
+        "name": "Tiket Pendakian (aplikasi)",
+        "url": null,
+        "source_url": "https://antaranews.com/berita/5756811",
+        "verified_at": "2026-11-24",
+        "note": "PRD §2.1: aplikasi \"Tiket Pendakian\". Lampiran A tidak mencantumkan URL → url dibiarkan null."
+      }
+    ],
+    "notes": [
+      {
+        "text": "Siklus tutup-buka 2026 dan rencana buka 14 Nov 2026 (booking dibuka 12 Nov) berasal dari kolom Dinamika 2026 PRD §2.1; tahun disimpulkan dari kolom itu karena tanggal ditulis tanpa tahun [ASUMSI]. [VERIFIKASI]",
+        "source_url": "https://antaranews.com/berita/5833931",
+        "verified_at": "2026-11-24"
+      },
+      {
+        "text": "Nama jalur, gate, pos, dan camp area tidak tercatat di PRD §2 → dibiarkan kosong, bukan diisi taksiran.",
+        "source_url": "https://jatim.jpnn.com/jatim-terkini/50187",
+        "verified_at": "2026-11-24"
+      }
+    ]
+  },
+  "routes": [],
+  "gates": [],
+  "checkpoints": [],
+  "camp_areas": [],
+  "quota": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "capacity_per_day": 550,
+      "unit": "hikers_per_day",
+      "gate_count": null,
+      "open_schedule": null,
+      "source_url": "https://antaranews.com/berita/5756811",
+      "verified_at": "2026-11-24",
+      "note": "PRD §2.1: kuota 550/hari. Jendela pembukaan booking tidak tercatat di §2."
+    }
+  ],
+  "closure_drafts": [
+    {
+      "status": "draft",
+      "route_slug": null,
+      "mode": "block_new_bookings",
+      "starts_at": "2026-10-17",
+      "ends_at": null,
+      "note": "PRD §2.1: tutup lagi 17 Okt, rencana buka 14 Nov 2026 (booking dibuka 12 Nov). Tahun 2026 untuk tanggal tanpa tahun disimpulkan dari kolom 'Dinamika 2026' [ASUMSI]. Rentang sebelumnya: buka 7 Mei, tutup 19 Agu (kebakaran), buka 26 Sep. [VERIFIKASI]",
+      "source_url": "https://antaranews.com/berita/5833931",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    },
+    {
+      "status": "draft",
+      "route_slug": null,
+      "mode": "block_new_bookings",
+      "starts_at": "2026-08-19",
+      "ends_at": "2026-09-26",
+      "note": "PRD §2.1: tutup 19 Agu karena kebakaran, buka lagi 26 Sep. Tahun 2026 disimpulkan dari kolom 'Dinamika 2026' [ASUMSI]. [VERIFIKASI]",
+      "source_url": "https://antaranews.com/berita/5793321",
+      "verified_at": "2026-11-24",
+      "confirmed_by": null
+    }
+  ],
+  "requirement_rules": [
+    {
+      "scope": "mountain",
+      "route_slug": null,
+      "type": "reschedule_policy",
+      "params": {
+        "requires_assessment": true
+      },
+      "severity": "warn",
+      "source_url": "https://antaranews.com/berita/5793321",
+      "verified_at": "2026-11-24",
+      "effective_from": null,
+      "effective_to": null,
+      "note": "PRD §2.1: reschedule baru dibuka setelah asesmen. Tidak dirinci di §2 → hanya penanda, belum bisa jadi blokir; nama params requires_assessment adalah label internal pack [ASUMSI]. [VERIFIKASI]"
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://antaranews.com/berita/5756811",
+      "title": "Arjuno-Welirang: SiPENERANG, kuota 550/hari, siklus tutup-buka berulang (sumber 1/4)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Sistem booking SiPENERANG dan aplikasi \"Tiket Pendakian\"; kuota 550/hari (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S2",
+      "url": "https://antaranews.com/berita/5793321",
+      "title": "Arjuno-Welirang: SiPENERANG, kuota 550/hari, siklus tutup-buka berulang (sumber 2/4)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Rangkaian penutupan/pembukaan 2026 dan kebijakan reschedule setelah asesmen (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S3",
+      "url": "https://antaranews.com/berita/5833931",
+      "title": "Arjuno-Welirang: SiPENERANG, kuota 550/hari, siklus tutup-buka berulang (sumber 3/4)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Penutupan 17 Okt 2026 dan rencana pembukaan 14 Nov 2026 dengan booking dibuka 12 Nov (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    },
+    {
+      "id": "S4",
+      "url": "https://jatim.jpnn.com/jatim-terkini/50187",
+      "title": "Arjuno-Welirang: SiPENERANG, kuota 550/hari, siklus tutup-buka berulang (sumber 4/4)",
+      "accessed_at": "2026-11-24",
+      "paraphrase": "Pelengkap rangkaian tutup-buka Arjuno-Welirang 2026 (PRD §2.1; Lampiran A).",
+      "kind": "news"
+    }
+  ]
+}
