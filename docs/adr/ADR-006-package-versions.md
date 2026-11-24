@@ -91,6 +91,37 @@ Manajer paket: **pnpm 10.33.2** (`package.json` `packageManager`), lock `lockfil
 | Ekstensi Redis | `pecl install redis-6.3.0` (`docker/api/Dockerfile:10`, versi dipin) |
 | Composer lokal (bukan bagian build) | `2.7.1` |
 
+### 1a. Dev-dependency `packages/contracts` — amendemen 2026-11-25 (T-006)
+
+Dev-dep kontrak (lint OpenAPI + generator tipe + validator contoh) terpasang di `packages/contracts`
+saja (bukan `apps/*`), constraint eksak di `packages/contracts/package.json`, dan tercatat di
+`pnpm-lock.yaml` (importer `packages/contracts`). Alasan: kontrak OpenAPI adalah sumber kebenaran
+(PRD §11, kartu T-006), sehingga validator/lint, generator tipe TypeScript, dan validator contoh
+payload hidup di paket kontrak, bukan di salah satu app. Paket ini pre-approved orchestrator
+(T-006, izin tertulis "dev-dep baru di packages/contracts saja sudah di-pre-approve").
+
+Verifikasi: `pnpm -C packages/contracts validate` (0 error, 0 warning), `pnpm -C packages/contracts
+test` (18/18), `pnpm -C packages/contracts generate:check` (exit 0), `pnpm -C packages/contracts
+typecheck` (exit 0).
+
+| Paket (dev, `packages/contracts`) | Versi ter-pin | Peran |
+|---|---|---|
+| `@redocly/cli` | `2.83.0` | Validator + lint OpenAPI 3.1 (`pnpm validate`): struktur, `$ref`, contoh media-type. |
+| `openapi-typescript` | `7.13.0` | Generator tipe TS deterministik (`pnpm generate`, `generate:check`); output `src/generated/openapi.d.ts` di-commit. |
+| `ajv` | `8.20.0` | Validator JSON Schema 2020-12 untuk contoh payload valid/invalid di tes kontrak (`tests/`). |
+| `ajv-formats` | `3.0.1` | Format `date-time`/`date`/`uri`/`email`/`uuid` pada validasi contoh. |
+| `yaml` | `2.9.1` | Parse `openapi.yaml` untuk tes kontrak. |
+| `typescript` | `5.9.3` | `tsc --noEmit` atas tipe ter-generate; sudah terpin ADR-006 untuk `apps/web` & `apps/pos` — dipakai ulang agar tidak ada dua versi TS di monorepo. |
+
+**Catatan pemelihara (temuan operasional T-006):** `@redocly/cli` 2.83.0 menghasilkan
+**false-positive** pada rule `no-invalid-schema-examples` terhadap skema yang memakai `if`/`then`
+(“must NOT have unevaluated properties …”, “must match 'then' schema”) untuk **semua** contoh di
+skema itu, walau contoh valid menurut JSON Schema 2020-12. Karena itu kontrak memakai **diskriminator
+`oneOf`** (bukan `if/then`) untuk kendala kondisional (`RouteStatus.source=official_letter`,
+`RequirementRule`/`RuleCreateRequest.scope=route`, `BookingLeader.is_foreign`); `oneOf` tervalidasi
+benar oleh redocly dan oleh ajv 2020-12 (tes kontrak). Jangan menambahkan skema ber-`if`/`then` ke
+kontrak tanpa memverifikasi `pnpm validate` bebas peringatan.
+
 ### 2. Level PHPStan: **dikonfirmasi level 5**
 
 - `apps/api/phpstan.neon` memuat `level: 5` dengan `includes: vendor/larastan/larastan/extension.neon`,
@@ -207,5 +238,6 @@ amendemen** — bukan ditebak sekarang.
 
 **accepted** — berlaku sejak 2026-11-24. Amendemen wajib (dan hanya amendemen, bukan ADR baru) ketika:
 (a) paket "approve" dipasang → catat versi eksak; (b) verdict paket berubah (defer → approve/reject);
-(c) level PHPStan naik; (d) digest image dipin. Perubahan keputusan (mis. memilih `spatie/laravel-pdf`,
-mengadopsi DB-per-tenant, atau menurunkan level PHPStan) memerlukan ADR baru yang menggantikan.
+(c) level PHPStan naik; (d) digest image dipin; (e) dev-dep paket kontrak ditambah → lihat §1a
+(amendemen 2026-11-25). Perubahan keputusan (mis. memilih `spatie/laravel-pdf`, mengadopsi
+DB-per-tenant, atau menurunkan level PHPStan) memerlukan ADR baru yang menggantikan.
