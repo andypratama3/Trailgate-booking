@@ -9,7 +9,7 @@ reviewers: [tg-backend, tg-web]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-005]
-status: in_review
+status: done
 rework_round: 0
 branch: agent/tg-architect/T-006
 acceptance:

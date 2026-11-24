@@ -14,13 +14,13 @@ Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + re
 | T-001 | Scaffold monorepo (api/web/pos/contracts), Docker compose dev, AGENTS.md, OWNERS.md | — | tg-devops | tg-architect | tg-security | tg-qa | — | M | done |
 | T-002 | Roster agent `.omp/agents`, papan `docs/board`, skema yield, konfigurasi model | — | Orchestrator | tg-architect | tg-reviewer | tg-auditor | T-001 *(dibalik — lihat `deviation` di T-002.yml)* | M | in_review |
 | T-003 | Pecah PRD jadi FR-ID + AC terukur + user story | semua | tg-analyst | tg-architect | tg-domain | tg-auditor | — | M | done |
-| T-004 | Skema Mountain Pack + validator sumber + 4 pack referensi demo (Gede-Pangrango, Rinjani, Semeru, Arjuno-Welirang) berlabel DEMO | FR-37 | tg-domain | tg-analyst | tg-architect | tg-auditor | T-003 | L | in_review |
+| T-004 | Skema Mountain Pack + validator sumber + 4 pack referensi demo (Gede-Pangrango, Rinjani, Semeru, Arjuno-Welirang) berlabel DEMO | FR-37 | tg-domain | tg-analyst | tg-architect | tg-auditor | T-003 | L | done |
 | T-005 | ADR: tenancy, BYO Midtrans, kuota, offline POS, enkripsi field, versi paket | — | tg-architect | tg-security | tg-data | tg-auditor | T-003 | M | done |
-| T-006 | OpenAPI v1 skeleton + generator tipe TS + tes kontrak | semua | tg-architect | tg-backend | tg-web | tg-qa | T-005 | L | in_review |
-| T-007 | Token desain, wireframe alur booking, status jalur, closure desk, POS | FR-02,09,15,16 | tg-ux | tg-web | tg-analyst | tg-qa | T-003 | L | in_review |
+| T-006 | OpenAPI v1 skeleton + generator tipe TS + tes kontrak | semua | tg-architect | tg-backend | tg-web | tg-qa | T-005 | L | done |
+| T-007 | Token desain, wireframe alur booking, status jalur, closure desk, POS | FR-02,09,15,16 | tg-ux | tg-web | tg-analyst | tg-qa | T-003 | L | done |
 | T-008 | CI: pint, phpstan, tes, tsc, lint, Playwright smoke, `composer/npm audit`, secret scan, `security_scan` | — | tg-devops | tg-security | tg-reviewer | tg-qa | T-001 | M | todo |
 | T-009 | Skrip wawancara + lembar validasi pilot (5 basecamp, 3 TO) | FR-35 | tg-analyst | tg-domain | Andy | tg-auditor | — | S | in_review |
-| T-010 | Setup Tailwind v4 CSS-first + pipeline token + budget ukuran CSS di CI | FR-39 | tg-ux (token) + tg-devops (pipeline) | tg-web | tg-reviewer | tg-qa | T-001 | M | todo |
+| T-010 | Setup Tailwind v4 CSS-first + pipeline token + budget ukuran CSS di CI | FR-39 | tg-ux (token) + tg-devops (pipeline) | tg-web | tg-reviewer | tg-qa | T-001 | M | in_review |
 | T-011 | `packages/ui` milik sendiri: komponen dasar + katalog + axe + state loading/empty/error | FR-39 | tg-ux | tg-web | tg-console | tg-qa | T-010 | L | todo |
 | T-012 | Tema tenant runtime + validator kontras WCAG AA + mode gelap | FR-39,02 | tg-web | tg-ux | tg-security | tg-qa | T-011 | M | todo |
 

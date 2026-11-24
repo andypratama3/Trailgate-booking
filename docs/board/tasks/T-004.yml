@@ -9,7 +9,7 @@ reviewers: [tg-analyst, tg-architect]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: [T-003]
-status: in_review
+status: done
 rework_round: 1
 branch: agent/tg-domain/T-004
 acceptance:
@@ -28,3 +28,6 @@ artifacts_expected:
 notes: >
   Gunung/pengelola pilot BELUM diputuskan (§20.2 #1). Keempat pack dibuat sebagai referensi DEMO;
   pack pilot nyata menyusul setelah keputusan Andy. Jangan menaikkan opini/taksiran menjadi `rules`.
+  Temuan P3 rereview tg-architect (RR1-F1, follow-up T-133): fixture permanen `mailto-source-url.json`
+  dan `future-verified-at.json` belum ada di `fixtures/` (kedua jalur validator terbukti exit 1 via
+  fixture sementara, tetapi tidak tercakup regresi permanen oleh self-test 15 kasus).
