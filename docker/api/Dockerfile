@@ -7,11 +7,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
     && docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql bcmath zip gd pcntl \
-    && pecl install redis \
+    && pecl install redis-6.3.0 \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/* /tmp/pear
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Digunakan bersama tag penuh (bukan `composer:2`); digest akan dipin di ADR-006.
+COPY --from=composer:2.7.9 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 WORKDIR /var/www/html

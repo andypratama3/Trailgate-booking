@@ -1,0 +1,9 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Level 5 sementara; konfirmasi level akhir menunggu ADR (T-005 / ADR-006).
+    level: 5
+    paths:
+        - app
+        - routes

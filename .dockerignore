@@ -1,0 +1,21 @@
+# Konteks build Docker (docker/api, docker/web). Rahasia & artefak lokal tidak boleh masuk image.
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & hasil build
+vendor/
+node_modules/
+.next/
+apps/*/.next/
+public/build/
+apps/api/public/build/
+
+# Git & artefak runtime
+.git/
+.gitignore
+storage/logs/
+apps/api/storage/logs/
+apps/api/bootstrap/cache/
