@@ -9,7 +9,7 @@ reviewers: [tg-architect, tg-devops]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: []
-status: todo
+status: done
 rework_round: 0
 branch: agent/tg-security/T-013
 acceptance:
@@ -24,5 +24,10 @@ notes: >
   Latar: pengguna memasang skill `alibaba/open-code-review` (`npx skills add`) dan meminta seat yang
   menjalankannya. Seat `tg-ocr` dibuat (`.omp/agents/tg-ocr.md`, reviewer mesin, tanpa hak tulis).
   AGENTS.md #10: paket baru wajib diajukan ke tg-security via task card — kartu ini pengajuannya.
-  Saat ini `ocr` BELUM terpasang di host dan tidak ada provider key di environment; sampai keputusan
-  approve + konfigurasi provider, seat `tg-ocr` tidak dapat dijalankan. Jangan install sendiri.
+  Verifikasi tg-auditor: **pass** (`docs/board/audit/2026-11-25-T-013.md`). Klaim yang TIDAK terbukti: validitas
+  kriptografis signature DSSE / OIDC trusted-publisher (A-1, P2, `unverified` — butuh sigstore/cosign);
+  integritas konten sudah tertutup rantai hash 3 kanal (digest attestation = sha512 tarball; binary sha256 =
+  GitHub Release `sha256sum.txt`; commit tag = `f6379f71`).
+  Implementasi 2026-11-25: CLI terpasang global ter-pin `@alibaba-group/open-code-review@1.14.3`;
+  karena tidak ada kredensial provider, seat `tg-ocr` berjalan dalam **mode delegate** (`ocr delegate preview|rule`,
+  LLM-free di sisi OCR). Mode native menunggu provider disetujui Andy.
