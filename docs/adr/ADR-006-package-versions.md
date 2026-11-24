@@ -94,7 +94,7 @@ Manajer paket: **pnpm 10.33.2** (`package.json` `packageManager`), lock `lockfil
 ### 2. Level PHPStan: **dikonfirmasi level 5**
 
 - `apps/api/phpstan.neon` memuat `level: 5` dengan `includes: vendor/larastan/larastan/extension.neon`,
-  `paths: app, routes` (tanpa `pint.json`; pint berjalan dengan preset default).
+  `paths: app, routes` (`apps/api/pint.json` hanya memuat `exclude: bootstrap/cache` untuk file cache hasil generate; preset tetap default).
 - Dijalankan nyata: `cd apps/api && vendor/bin/phpstan analyse --no-progress --memory-limit=1G`
   → `[OK] No errors`, exit `0`, wall time 3,24 s.
 - **Level 5 adalah level yang disepakati** untuk P0/P1. T-008 harus memasang CI pada level 5; menaikkan
