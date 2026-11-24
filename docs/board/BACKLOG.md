@@ -24,7 +24,7 @@ Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + re
 | T-011 | `packages/ui` milik sendiri: komponen dasar + katalog + axe + state loading/empty/error | FR-39 | tg-ux | tg-web | tg-console | tg-qa | T-010 | L | todo |
 | T-012 | Tema tenant runtime + validator kontras WCAG AA + mode gelap | FR-39,02 | tg-web | tg-ux | tg-security | tg-qa | T-011 | M | todo |
 | T-013 | Gate paket CLI `@alibaba-group/open-code-review` (ocr) untuk seat tg-ocr (AGENTS.md #10) | — | tg-security | tg-architect | tg-devops | tg-auditor | — | S | done |
-| T-014 | Manifest PWA POS — hilangkan hex hardcode atau pengecualian terdokumentasi | FR-39,16 | tg-console | tg-web | tg-reviewer | tg-qa | T-010 | S | todo |
+| T-014 | Manifest PWA POS — hilangkan hex hardcode atau pengecualian terdokumentasi | FR-39,16 | tg-console | tg-web | tg-reviewer | tg-qa | T-010 | S | done |
 
 ## P1 — MVP
 
