@@ -1,0 +1,25 @@
+id: T-014
+title: Manifest PWA POS — hilangkan hex hardcode atau beri pengecualian terdokumentasi
+fr: [FR-39, FR-16]
+epic: P0
+phase: P0
+owner: tg-console
+co_owner: null
+reviewers: [tg-web, tg-reviewer]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-010]
+status: todo
+rework_round: 0
+branch: agent/tg-console/T-014
+acceptance:
+  - "`apps/pos/app/manifest.ts:10-11` tidak lagi memuat hex literal `#ffffff`/`#0f766e` ATAU diberi pengecualian tertulis `tg-token-lint:allow` dengan komentar alasan (manifest PWA statis tidak bisa memakai CSS variable) — satu opsi diputuskan, bukan dua."
+  - "`pnpm -C packages/design-tokens check-no-hardcode` hijau tanpa perlu mengecualikan seluruh `apps/pos` (scope aman: `apps/web/app packages/ui`; `apps/pos` bersih setelah keputusan ini)."
+  - "Bila opsi pengecualian dipilih: alasan + tautan ke kontrak PWA dicatat di `manifest.ts` dan di `docs/ux/token-pipeline.md` §8."
+artifacts_expected:
+  - apps/pos/app/manifest.ts
+  - docs/ux/token-pipeline.md (bagian §8 bila perlu)
+notes: >
+  Sumber: BuildReport T-010 (lint `check-no-hardcode` menemukan 2 hex) + temuan tg-reviewer T-010 F-3.
+  Keputusan penting: nilai warna manifest memang tidak bisa berasal dari CSS variable karena dibaca
+  sistem operasi sebelum stylesheet dimuat — itu alasan sah untuk pengecualian, tapi harus tertulis.

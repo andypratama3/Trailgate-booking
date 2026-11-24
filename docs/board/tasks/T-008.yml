@@ -27,6 +27,8 @@ acceptance:
   - "Komentar `pin digest menunggu ADR-006` di `docker/api/Dockerfile` harus menunjuk ADR-006 §3 sebagai item TERBUKA berdeadline T-008 (ADR-006 sudah accepted). Temuan F-9."
   - "Tes kontrak packages/contracts diwiring ke CI: job yang menjalankan `pnpm -C packages/contracts validate` + `test` + `generate:check` + `typecheck` (temuan tg-ocr T-006 F-13; tanpa ini kontrak bisa drift tanpa terdeteksi)."
   - "Checkout bersih tidak merah: generated `packages/contracts/src/generated/openapi.d.ts` ikut commit ATAU step `generate` dijalankan sebelum `typecheck` (temuan tg-ocr T-006 F-1, P1)."
+  - "Job/token gates untuk pipeline token T-010 (AC-5 T-010): setelah `next build`, jalankan `pnpm -C packages/design-tokens check` (drift css/ vs build), `check-doc-parity`, `check-no-hardcode`, dan `budget:require-app` — gagal bila melewati batas (temuan tg-reviewer T-010 F-1 P1; spesifikasi di `docs/ux/token-pipeline.md` §7)."
+  - "Sementara `apps/pos/app/manifest.ts:10-11` masih hardcode hex (milik tg-console), scope `check-no-hardcode` ke `apps/web/app packages/ui` — jangan biarkan CI merah hari pertama (temuan tg-reviewer T-010 F-3)."
 artifacts_expected:
   - .github/workflows/*.yml
   - pint.json / phpstan.neon / eslint config (bila belum ada dari T-001)
