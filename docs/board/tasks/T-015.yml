@@ -9,7 +9,7 @@ reviewers: [tg-architect, tg-web]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: [T-011]
-status: todo
+status: in_review
 rework_round: 0
 branch: agent/tg-security/T-015
 acceptance:
@@ -21,5 +21,12 @@ artifacts_expected:
   - docs/security/package-gates/T-015-axe.md
 notes: >
   Latar: T-011 acceptance butuh "axe tanpa pelanggaran serius pada katalog"; lockfile saat ini tidak memuat
-  axe-core maupun @axe-core/playwright (dan Playwright juga belum). Gate diajukan sesuai AGENTS.md #10 —
-  tg-ux DILARANG install sendiri; sampai keputusan keluar, laporan axe disediakan sebagai skrip + instruksi.
+  axe-core maupun @axe-core/playwright (Playwright juga belum). Gate sesuai AGENTS.md #10 — tg-ux
+  DILARANG install sendiri; sampai keputusan keluar, laporan axe disediakan sebagai skrip + instruksi.
+  Keputusan tg-security (`docs/security/package-gates/T-015-axe.md`): **approve** `@axe-core/playwright@4.14.1`
+  dev-only (Deque, MPL-2.0, tanpa postinstall/telemetri; `axe-core@4.14.1` sudah ada di lockfile via
+  eslint-plugin-jsx-a11y). Kondisi: devDependencies saja; pin eksak tanpa ^/~; verifikasi non-bundle
+  (`apps/web/.next/static/**` + `apps/pos/.next/static/**` tanpa axe); **urutan install hanya setelah
+  `@playwright/test` ada di lockfile (T-008)**; jest-axe & vitest-axe ditolak; engines root perlu
+  selaras (axe minta node >= 22.12.0; workspace `>= 20.9.0`).
+
