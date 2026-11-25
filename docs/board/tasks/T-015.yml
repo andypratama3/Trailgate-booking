@@ -1,0 +1,25 @@
+id: T-015
+title: Gate paket — tooling aksesibilitas axe untuk T-011 (katalog komponen)
+fr: [FR-39]
+epic: P0
+phase: P0
+owner: tg-security
+co_owner: [tg-qa, tg-ux]
+reviewers: [tg-architect, tg-web]
+verifier: tg-auditor
+auditor: tg-auditor
+depends_on: [T-011]
+status: todo
+rework_round: 0
+branch: agent/tg-security/T-015
+acceptance:
+  - "Keputusan tertulis approve | defer | reject untuk tooling axe (`@axe-core/playwright` dan/atau `axe-core`), dengan alasan + risiko."
+  - "Bila approve: paket dibatasi **dev-dependency** dan DILARANG masuk bundle produksi (verifikasi: tidak muncul di `apps/web/.next/static/**` hasil build)."
+  - "Versi ter-pin dicatat; publisher/license/dependensi transitif diperiksa (Deque, axe-core MPL-2.0)."
+  - "Rekomendasi eksplisit soal urutan: apakah axe lebih baik menunggu Playwright/e2e dari T-008, atau bisa jalan lebih dulu."
+artifacts_expected:
+  - docs/security/package-gates/T-015-axe.md
+notes: >
+  Latar: T-011 acceptance butuh "axe tanpa pelanggaran serius pada katalog"; lockfile saat ini tidak memuat
+  axe-core maupun @axe-core/playwright (dan Playwright juga belum). Gate diajukan sesuai AGENTS.md #10 —
+  tg-ux DILARANG install sendiri; sampai keputusan keluar, laporan axe disediakan sebagai skrip + instruksi.

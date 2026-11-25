@@ -4,7 +4,7 @@ fr: [FR-39]
 epic: P0
 phase: P0
 owner: tg-ux
-co_owner: null
+co_owner: [tg-web]
 reviewers: [tg-web, tg-console]
 verifier: tg-qa
 auditor: tg-auditor
@@ -25,3 +25,7 @@ artifacts_expected:
   - laporan axe
 notes: >
   DataTable penuh (T-186) dan widget (T-187) menyusul di P1; di sini cukup komponen dasar + state.
+  Katalog komponen = halaman internal di `apps/web/app/(internal)/katalog/**` (path tg-web, co_owner → koordinasi
+  wajib; jangan ubah halaman publik). Aksesibilitas: laporan axe dijalankan terhadap katalog; paket axe
+  (@axe-core/playwright atau axe-core) WAJIB lewat gate tg-security (AGENTS.md #10) — Orchestrator mengajukan
+  gate paralel; sampai disetujui, jangan install sendiri.
