@@ -16,7 +16,7 @@ Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + re
 | T-003 | Pecah PRD jadi FR-ID + AC terukur + user story | semua | tg-analyst | tg-architect | tg-domain | tg-auditor | — | M | done |
 | T-004 | Skema Mountain Pack + validator sumber + 4 pack referensi demo (Gede-Pangrango, Rinjani, Semeru, Arjuno-Welirang) berlabel DEMO | FR-37 | tg-domain | tg-analyst | tg-architect | tg-auditor | T-003 | L | done |
 | T-005 | ADR: tenancy, BYO Midtrans, kuota, offline POS, enkripsi field, versi paket | — | tg-architect | tg-security | tg-data | tg-auditor | T-003 | M | done |
-| T-006 | OpenAPI v1 skeleton + generator tipe TS + tes kontrak | semua | tg-architect | tg-backend | tg-web | tg-qa | T-005 | L | in_review |
+| T-006 | OpenAPI v1 skeleton + generator tipe TS + tes kontrak | semua | tg-architect | tg-backend | tg-web | tg-qa | T-005 | L | done |
 | T-007 | Token desain, wireframe alur booking, status jalur, closure desk, POS | FR-02,09,15,16 | tg-ux | tg-web | tg-analyst | tg-qa | T-003 | L | done |
 | T-008 | CI: pint, phpstan, tes, tsc, lint, Playwright smoke, `composer/npm audit`, secret scan, `security_scan` | — | tg-devops | tg-security | tg-reviewer | tg-qa | T-001 | M | todo |
 | T-009 | Skrip wawancara + lembar validasi pilot (5 basecamp, 3 TO) | FR-35 | tg-analyst | tg-domain | Andy | tg-auditor | — | S | in_review |
