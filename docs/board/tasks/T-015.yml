@@ -9,7 +9,7 @@ reviewers: [tg-architect, tg-web]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: [T-011]
-status: in_review
+status: done
 rework_round: 0
 branch: agent/tg-security/T-015
 acceptance:
