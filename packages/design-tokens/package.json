@@ -2,5 +2,25 @@
   "name": "@trailgate/design-tokens",
   "version": "0.0.0",
   "private": true,
-  "description": "Token desain tunggal (warna, tipografi, spasi, radius, bayangan, motion) → CSS variables. Milik tg-ux."
+  "description": "Token desain tunggal (warna, tipografi, spasi, radius, bayangan, motion) → CSS variables. Milik tg-ux.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    "./tokens.css": "./css/tokens.css",
+    "./theme.css": "./css/theme.css"
+  },
+  "files": [
+    "tokens.json",
+    "css"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check && node scripts/check-doc-parity.mjs",
+    "check-no-hardcode": "node scripts/check-no-hardcode.mjs",
+    "budget": "node scripts/css-budget.mjs",
+    "budget:require-app": "node scripts/css-budget.mjs --require-app",
+    "test": "node build.mjs --check && node scripts/check-doc-parity.mjs && node scripts/check-no-hardcode.mjs && node scripts/css-budget.mjs"
+  }
 }

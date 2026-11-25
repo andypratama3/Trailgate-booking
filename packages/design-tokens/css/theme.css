@@ -1,0 +1,88 @@
+/*
+ * GENERATED — JANGAN edit manual. Sumber: packages/design-tokens/tokens.json.
+ * Build: pnpm -C packages/design-tokens build
+ */
+
+@theme inline {
+  /* warna peran -> bg-*, text-*, border-*, ring-*, ... (fallback = primitif tema terang) */
+  --color-canvas: var(--tg-canvas, var(--tg-gray-50));
+  --color-surface: var(--tg-surface, var(--tg-white));
+  --color-surface-raised: var(--tg-surface-raised, var(--tg-gray-100));
+  --color-fg: var(--tg-fg, var(--tg-gray-900));
+  --color-fg-muted: var(--tg-fg-muted, var(--tg-gray-700));
+  --color-fg-subtle: var(--tg-fg-subtle, var(--tg-gray-600));
+  --color-border: var(--tg-border, var(--tg-gray-200));
+  --color-border-strong: var(--tg-border-strong, var(--tg-gray-500));
+  --color-brand: var(--tg-brand, var(--tg-emerald-700));
+  --color-brand-fg: var(--tg-brand-fg, var(--tg-white));
+  --color-brand-subtle: var(--tg-brand-subtle, var(--tg-emerald-50));
+  --color-brand-subtle-fg: var(--tg-brand-subtle-fg, var(--tg-emerald-800));
+  --color-primary: var(--tg-primary, var(--tg-teal-700));
+  --color-primary-fg: var(--tg-primary-fg, var(--tg-white));
+  --color-success: var(--tg-success, var(--tg-green-700));
+  --color-success-subtle: var(--tg-success-subtle, var(--tg-green-50));
+  --color-success-subtle-fg: var(--tg-success-subtle-fg, var(--tg-green-800));
+  --color-warning: var(--tg-warning, var(--tg-amber-700));
+  --color-warning-subtle: var(--tg-warning-subtle, var(--tg-amber-50));
+  --color-warning-subtle-fg: var(--tg-warning-subtle-fg, var(--tg-amber-800));
+  --color-danger: var(--tg-danger, var(--tg-red-700));
+  --color-danger-subtle: var(--tg-danger-subtle, var(--tg-red-50));
+  --color-danger-subtle-fg: var(--tg-danger-subtle-fg, var(--tg-red-700));
+  --color-info: var(--tg-info, var(--tg-blue-700));
+  --color-info-subtle: var(--tg-info-subtle, var(--tg-blue-50));
+  --color-info-subtle-fg: var(--tg-info-subtle-fg, var(--tg-blue-700));
+  --color-focus: var(--tg-focus, var(--tg-teal-700));
+  --color-overlay: var(--tg-overlay);
+
+  /* tipografi (§2) */
+  --font-sans: var(--tg-font-sans);
+  --font-mono: var(--tg-font-mono);
+  --font-weight-normal: var(--tg-weight-regular);
+  --font-weight-medium: var(--tg-weight-medium);
+  --font-weight-semibold: var(--tg-weight-semibold);
+  --leading-tight: var(--tg-leading-tight);
+  --leading-normal: var(--tg-leading-normal);
+  --text-xs: var(--tg-text-xs);
+  --text-xs--line-height: var(--tg-text-xs-lh);
+  --text-sm: var(--tg-text-sm);
+  --text-sm--line-height: var(--tg-text-sm-lh);
+  --text-base: var(--tg-text-base);
+  --text-base--line-height: var(--tg-text-base-lh);
+  --text-lg: var(--tg-text-lg);
+  --text-lg--line-height: var(--tg-text-lg-lh);
+  --text-xl: var(--tg-text-xl);
+  --text-xl--line-height: var(--tg-text-xl-lh);
+  --text-2xl: var(--tg-text-2xl);
+  --text-2xl--line-height: var(--tg-text-2xl-lh);
+  --text-3xl: var(--tg-text-3xl);
+  --text-3xl--line-height: var(--tg-text-3xl-lh);
+  --text-4xl: var(--tg-text-4xl);
+  --text-4xl--line-height: var(--tg-text-4xl-lh);
+
+  /* spasi (§3), radius (§4), bayangan (§5), motion (§6) */
+  --spacing: var(--tg-space);
+  --radius-sm: var(--tg-radius-sm);
+  --radius-md: var(--tg-radius-md);
+  --radius-lg: var(--tg-radius-lg);
+  --radius-xl: var(--tg-radius-xl);
+  --radius-full: var(--tg-radius-full);
+  --shadow-sm: var(--tg-shadow-sm);
+  --shadow-md: var(--tg-shadow-md);
+  --shadow-lg: var(--tg-shadow-lg);
+  --ease-standard: var(--tg-ease-standard);
+  --ease-decelerate: var(--tg-ease-decelerate);
+  --animate-pulse: var(--tg-animate-pulse);
+  --default-transition-duration: var(--tg-duration-base);
+}
+
+/* Tailwind v4 tidak punya namespace --duration-*: durasi khusus lewat @utility resmi
+   (docs/ux/design-tokens.md §0 butir 3). */
+@utility duration-fast { transition-duration: var(--tg-duration-fast); }
+@utility duration-slow { transition-duration: var(--tg-duration-slow); }
+
+/* Tailwind v4 membuang @keyframes default ketika --animate-* dioverride lewat @theme inline;
+   keyframes yang dirujuk token motion §6 dideklarasikan eksplisit di sini (~60 B, selalu ikut
+   bundle — diterima; budget CSS §6 punya headroom ~1,7 KiB). */
+@keyframes pulse {
+  50% { opacity: 0.5; }
+}

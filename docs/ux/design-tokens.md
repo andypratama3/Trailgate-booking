@@ -31,18 +31,39 @@ Dua lapis:
 **Fallback (satu konvensi untuk semua peran).** Di mapping `@theme inline`, setiap peran dipetakan
 `var(--tg-<peran>, var(--tg-<primitif-default>))` — fallback selalu **rujukan ke primitif**, tidak
 pernah hex baru; `:root` tetap mengisi semua peran, sehingga fallback hanya aktif bila variabel kosong/
-tidak sah (mis. override tenant tidak valid, yang ditolak T-012).
+tidak sah (mis. override tenant tidak valid, yang ditolak T-012). Pengecualian: peran bernilai mentah
+(`overlay` = `rgb(...)` dengan alpha) **tidak diberi fallback** — nilainya bukan turunan primitif dan
+bukan bagian yang boleh di-override tenant, sehingga dipetakan sebagai `var(--tg-overlay)` polos.
 
-Pemetaan ke utilitas Tailwind v4 (namespace `@theme`):
+Pemetaan ke utilitas Tailwind v4 (namespace `@theme`). Berkas `css/tokens.css` dan `css/theme.css`
+di-**generate** dari `packages/design-tokens/tokens.json` (T-010); dokumen ini memuat bentuk ringkasnya,
+bukan salinan nilai:
 
 ```css
+/* apps/web/app/globals.css — 1) default Tailwind dulu, lalu 2) token runtime, 3) pemetaan @theme */
 @import "tailwindcss";
+@import "../../../packages/design-tokens/css/tokens.css"; /* 1. nilai runtime */
+@import "../../../packages/design-tokens/css/theme.css";  /* 2. @theme inline + @utility + keyframes */
+```
 
-/* 1. Nilai runtime: tema terang default, gelap via [data-theme="dark"], tenant via inline style */
-:root { --tg-canvas: var(--tg-gray-50); /* ... seluruh peran terang ... */ }
-[data-theme="dark"] { --tg-canvas: var(--tg-gray-950); /* ... peran gelap ... */ }
+Isi `css/tokens.css` (ringkas): terang di `:root`, gelap di `[data-theme="dark"]`, nilai peran berupa
+`var(--tg-<primitif>)` sehingga kedua tema berasal dari ramp yang sama; hanya `overlay` bernilai mentah
+(§1.2, `rgb(...)` dengan alpha).
 
-/* 2. @theme inline: var runtime -> utilitas Tailwind (fallback = primitif, bukan hex) */
+```css
+:root {
+  --tg-canvas: var(--tg-gray-50);      /* ... seluruh peran terang ... */
+  --tg-overlay: rgb(28 25 23 / 0.6);
+}
+[data-theme="dark"] {
+  --tg-canvas: var(--tg-gray-950);     /* ... peran gelap, nama peran identik ... */
+}
+```
+
+Isi `css/theme.css`: pemetaan `@theme inline` (fallback = **primitif** tema terang, bukan hex baru),
+durasi khusus lewat `@utility` resmi (§0 butir 3), dan keyframes yang dirujuk token motion §6.
+
+```css
 @theme inline {
   --color-canvas: var(--tg-canvas, var(--tg-gray-50));
   --color-fg:     var(--tg-fg, var(--tg-gray-900));
@@ -57,10 +78,12 @@ Pemetaan ke utilitas Tailwind v4 (namespace `@theme`):
   --default-transition-duration: var(--tg-duration-base);
 }
 
-/* 3. Durasi khusus: Tailwind v4 (4.3.5) TIDAK punya namespace --duration-*, jadi dipasang
-      lewat @utility resmi, bukan token @theme. */
+/* Tailwind v4 (4.3.5) TIDAK punya namespace --duration-*, jadi dipasang lewat @utility resmi. */
 @utility duration-fast { transition-duration: var(--tg-duration-fast); }
 @utility duration-slow { transition-duration: var(--tg-duration-slow); }
+
+/* Tailwind membuang @keyframes bawaan ketika --animate-* dioverride @theme inline; dideklarasikan ulang. */
+@keyframes pulse { 50% { opacity: 0.5; } }
 ```
 
 Utilitas yang dihasilkan: `bg-canvas`, `bg-surface`, `bg-surface-raised`, `text-fg`, `text-fg-muted`,
@@ -69,7 +92,10 @@ Utilitas yang dihasilkan: `bg-canvas`, `bg-surface`, `bg-surface-raised`, `text-
 **Tidak ada** kelas `bg-[#...]` atau `text-[13px]` di komponen (dicek CI, AC-39.1).
 
 > Catatan `@theme inline`: dipakai (bukan `@theme` biasa) karena nilainya merujuk CSS variable lain
-> sehingga bisa berubah per tema/tenant tanpa rebuild. Detail pipeline di `docs/ux/token-pipeline.md` (T-010).
+> sehingga bisa berubah per tema/tenant tanpa rebuild. Detail pipeline, budget CSS, dan keputusan
+> sumber nilai ramp ada di `docs/ux/token-pipeline.md` (T-010); parity dokumen↔`tokens.json` diuji
+> `packages/design-tokens/scripts/check-doc-parity.mjs`; bukti provenance ramp via
+> `docs/ux/compare-tailwind-v4.mjs`.
 > Primitif terkait: `--tg-font-sans`/`--tg-font-mono` (§2), `--tg-text-*`/`--tg-text-*-lh` (§2),
 > `--tg-space` (§3), `--tg-radius-*` (§4), `--tg-shadow-*` (§5), `--tg-ease-*`/`--tg-duration-*` (§6).
 
@@ -90,11 +116,22 @@ Utilitas yang dihasilkan: `bg-canvas`, `bg-surface`, `bg-surface-raised`, `text-
 | `--tg-emerald-*` (brand default) | `#ECFDF5` | `#D1FAE5` | `#A7F3D0` | `#6EE7B7` | `#34D399` | — | `#10B981` | `#059669` | `#047857` | `#065F46` | `#064E3B` | `#022C22` |
 
 Primitif tunggal (bukan bagian ramp): `--tg-white` = `#FFFFFF` (latar `surface` terang,
-`brand-fg`/`primary-fg`).
+`brand-fg`/`primary-fg` terang) dan `--tg-black` = `#000000` (kandidat `brand-fg` gelap menurut aturan
+penurunan §1.5: `brand-fg` hanya `#FFFFFF` atau `#000000`, dipilih yang memberi rasio tertinggi).
 
-Ramp netral memakai skala **stone**; ramp warna memakai langkah **Tailwind CSS v4** (label = langkah
-Tailwind, dicocokkan satu per satu; `gray-450` adalah langkah tambahan milik TrailGate). Brand default
-emerald, dapat diganti tenant (FR-02).
+**Keputusan rampa (temuan N-1 dari rereview tg-web).** Seluruh nilai ramp di tabel atas — netral
+(stone) maupun warna (green/amber/red/blue/teal/emerald) — **adalah palet sRGB Tailwind v3**. Hanya
+dua primitif milik TrailGate: `gray-450` (langkah tambahan; tidak ada di palet Tailwind mana pun) dan
+`--tg-black` = `#000000` (Tailwind v3/v4 punya `--color-black: #000`; kita tetap `#000000` agar satu
+format `#RRGGBB` dengan `--tg-white`). Penamaan langkah mengikuti konvensi Tailwind. Brand default
+emerald, dapat diganti tenant (FR-02). Alasan + bukti terhitung: `docs/ux/token-pipeline.md` §4 dan
+`docs/ux/compare-tailwind-v4.mjs`. CI menegakkan parity dokumen↔`tokens.json` lewat
+`packages/design-tokens/scripts/check-doc-parity.mjs`.
+
+**Atribusi (versi + tanggal):** palet sRGB Tailwind v3 (seri 3.x; nilai resmi yang diterbitkan
+Tailwind Labs; dicatat 2026-11-25). Kecocokan byte-per-byte dengan palet v3 diverifikasi pada review
+T-010 (temuan tg-web F-2); nilai `tailwindcss` ter-pin di repo adalah 4.3.5 (berbasis `oklch`, bukan
+sumber dari sini).
 
 ### 1.2 Peran semantik — TEMA TERANG
 

@@ -1,5 +1,16 @@
-@import "tailwindcss";
+/* Token TrailGate — satu sumber: packages/design-tokens/tokens.json
+ * build → packages/design-tokens/css/{tokens.css,theme.css} → @theme → utilitas Tailwind v4.
+ * Nilai mentah (hex/px) TIDAK boleh ditulis di apps/**: komponen hanya memakai peran semantik
+ * (`bg-canvas`, `text-fg-muted`, `rounded-md`, `p-4`, ...). Lihat docs/ux/token-pipeline.md. */
+@import "tailwindcss";                                          /* 1. default Tailwind v4 */
+@import "../../../packages/design-tokens/css/tokens.css"; /* 2. nilai runtime (terang+gelap) */
+@import "../../../packages/design-tokens/css/theme.css";  /* 3. pemetaan @theme + @utility + keyframes */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+/* Tema gelap: nama peran identik, nilai dari ramp yang sama (tokens.css). */
+[data-theme="dark"] {
+  color-scheme: dark;
 }

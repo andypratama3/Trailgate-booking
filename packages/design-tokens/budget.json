@@ -1,0 +1,11 @@
+{
+  "$comment": [
+    "Batas ukuran CSS (T-010). Diperiksa scripts/css-budget.mjs; dicatat juga di docs/ux/token-pipeline.md",
+    "dan packages/design-tokens/README.md. Ukuran mentah (raw bytes, tanpa gzip) — deterministik,",
+    "tidak bergantung implementasi kompresi."
+  ],
+  "limitsBytes": {
+    "tokensCss": 12288,
+    "appCss": 40960
+  }
+}
