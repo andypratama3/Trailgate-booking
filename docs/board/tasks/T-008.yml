@@ -29,6 +29,7 @@ acceptance:
   - "Checkout bersih tidak merah: generated `packages/contracts/src/generated/openapi.d.ts` ikut commit ATAU step `generate` dijalankan sebelum `typecheck` (temuan tg-ocr T-006 F-1, P1)."
   - "Job/token gates untuk pipeline token T-010 (AC-5 T-010): setelah `next build`, jalankan `pnpm -C packages/design-tokens check` (drift css/ vs build), `check-doc-parity`, `check-no-hardcode`, dan `budget:require-app` — gagal bila melewati batas (temuan tg-reviewer T-010 F-1 P1; spesifikasi di `docs/ux/token-pipeline.md` §7)."
   - "`check-no-hardcode` dijalankan dengan scope default 3 akar (`apps/web/app apps/pos/app packages/ui`) — `apps/pos` sudah bersih sejak T-014 (pengecualian terdokumentasi `tg-token-lint:allow` pada manifest). Butir lama yang membatasi ke 2 akar SUPERSEDED oleh T-014 (temuan tg-reviewer T-014 F-3)."
+  - "`node docs/ux/compare-tailwind-v4.mjs` dijalankan di job `tokens-check` (temuan tg-reviewer T-010 F-6 residual): angka 62/78 langkah ramp dan 23/35 baris kontras adalah bukti keputusan N-1; tanpa gate, angka rekaman bisa lapuk diam-diam bila ramp berubah."
 artifacts_expected:
   - .github/workflows/*.yml
   - pint.json / phpstan.neon / eslint config (bila belum ada dari T-001)
