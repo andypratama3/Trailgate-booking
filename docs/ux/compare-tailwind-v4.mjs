@@ -90,10 +90,10 @@ console.log(`baris kontras §1.4: ${rows}; bergeser >0.01 bila v4 diadopsi: ${ch
 for (const d of diffs.slice(0, 8)) console.log('  ', d);
 
 // Angka rekaman §4 (variabel tetap di sini — mengubahnya = mengubah kesimpulan, bukan kode).
-const EXPECTED = { differ: 62, noV4: 1, changed: 23, noBasis: 2 };
+const EXPECTED = { total: 78, differ: 62, noV4: 1, rows: 35, changed: 23, noBasis: 2 };
 let bad = 0;
 for (const [k, v] of Object.entries(EXPECTED)) {
-  const actual = { differ, noV4, changed, noBasis }[k];
+  const actual = { total, differ, noV4, rows, changed, noBasis }[k];
   if (actual !== v) { bad++; console.error(`MENYIMPANG: ${k}: terukur ${actual}, direkam ${v}`); }
 }
 console.log(bad ? `compare-tailwind-v4 GAGAL: ${bad} angka menyimpang dari rekaman §4` : 'compare-tailwind-v4 OK: angka sesuai rekaman docs/ux/token-pipeline.md §4');

@@ -9,8 +9,8 @@ reviewers: [tg-security, tg-reviewer]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-001]
-status: todo
-rework_round: 0
+status: done
+rework_round: 3
 branch: agent/tg-devops/T-008
 acceptance:
   - "pipelines GitHub Actions: lint/static (pint + larastan/phpstan), tests (PHPUnit), frontend (tsc + eslint), e2e smoke (Playwright)"

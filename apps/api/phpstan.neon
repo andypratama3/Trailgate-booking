@@ -2,7 +2,7 @@ includes:
     - vendor/larastan/larastan/extension.neon
 
 parameters:
-    # Level 5 sementara; konfirmasi level akhir menunggu ADR (T-005 / ADR-006).
+    # Level 5 disepakati — ADR-006 §2 (accepted 2026-11-24). Naik/turun = amendemen ADR.
     level: 5
     paths:
         - app

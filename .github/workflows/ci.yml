@@ -1,0 +1,527 @@
+# .github/workflows/ci.yml — Pipeline CI untuk TrailGate.
+#
+# Jobs: lint-php, phpstan, test-php, typecheck, lint-web, audit, tokens, tokens-check,
+#       tokens-budget, contracts, secret-scan, security-scan, e2e, tenant-isolation.
+#
+# security-scan (semgrep --error, selalu aktif — bukan fail-safe).
+#
+# Lokal: `make ci` (Makefile mencerminkan job yang sama).
+# Runner GHA: tidak tersedia di environment dev; validasi lokal.
+name: CI
+on:
+  push:
+    branches: [master, 'integration']
+  pull_request:
+    branches: [master]
+env:
+  MYSQL_PORT: "3306"
+  REDIS_PORT: "6379"
+# PHPStan level: 5 disepakati ADR-006 §2.
+
+
+jobs:
+  # ─── PHP lint (pint) ─────────────────────────────────────────────────────────
+  lint-php:
+    name: pint
+    runs-on: ubuntu-24.04
+    # Non-root: www-data untuk production parity.
+    # Dev images boleh root; CI selalu non-root.
+    container: php:8.3-cli-bookworm@sha256:5b8dd5a1c0930ff7757e8817d3ebbfc24d2ebddc4a158814776e8846af0ab347
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends git unzip
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+      - name: Install Laravel/PHP deps
+        working-directory: apps/api
+        env:
+          COMPOSER_ALLOW_SUPERUSER: "1"
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run pint
+        working-directory: apps/api
+        run: vendor/bin/pint --test
+
+  # ─── PHPStan level 5 (ADR-006 §2) ───────────────────────────────────────────
+  phpstan:
+    name: phpstan (level 5)
+    runs-on: ubuntu-24.04
+    # Digest pin (ADR-006 §3, F1B-5): tag mungkin bergerak; digest dipakai sebelum rilis.
+    container: php:8.3-cli-bookworm@sha256:5b8dd5a1c0930ff7757e8817d3ebbfc24d2ebddc4a158814776e8846af0ab347
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends git unzip
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+      - name: Install Laravel/PHP deps
+        working-directory: apps/api
+        env:
+          COMPOSER_ALLOW_SUPERUSER: "1"
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPStan
+        working-directory: apps/api
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+  # ─── PHP Unit tests ──────────────────────────────────────────────────────────
+  test-php:
+    name: PHPUnit tests
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        # Digest pin (ADR-006 §3, F1B-5) — sama dengan docker-compose.yml.
+        image: mysql:8.4@sha256:f0c7a4430d773ef8433aae82e08cb02ade4a6ad806a18b1610a48a1728fbdfd5
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: trailgate_testing
+          MYSQL_USER: tg_test
+          MYSQL_PASSWORD: tg_test_pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        # Digest pin (ADR-006 §3, F1B-5).
+        image: redis:7-alpine@sha256:e4ee3e03ce8f75471f40937a7c6b2b0e500390b6812fcdf5cb32c01295ded446
+        ports:
+          - 6379:6379
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: trailgate_testing
+      DB_USERNAME: tg_test
+      DB_PASSWORD: tg_test_pass
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      APP_ENV: testing
+      APP_DEBUG: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, redis
+          coverage: none
+
+      - name: Install deps
+        working-directory: apps/api
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit
+        working-directory: apps/api
+        run: php artisan test
+
+  # ─── TypeScript typecheck ────────────────────────────────────────────────────
+  typecheck:
+    name: tsc (web + pos)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run typecheck
+        run: pnpm run typecheck
+
+  # ─── ESLint web ─────────────────────────────────────────────────────────────
+  lint-web:
+    name: eslint (web)
+    runs-on: ubuntu-24.04
+    # Non-root: node (GHA default, uid 1001, bukan root).
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        working-directory: apps/web
+        run: pnpm exec eslint app/ --max-warnings 0
+
+  # ─── Token pipeline (T-010, co-owner tg-devops) ─────────────────────────────
+  # Urutan: drift gate → parity/hardcode/contrast; budget setelah `next build`.
+  # Spec: docs/ux/token-pipeline.md §7. Lokal: make tokens / make tokens:check.
+  tokens-build:
+    name: tokens (drift gate)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build tokens + drift gate
+        run: |
+          pnpm -C packages/design-tokens build
+          git diff --exit-code packages/design-tokens/css
+
+  tokens-check:
+    name: tokens (parity + hardcode lint + contrast)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Parity dokumen↔token
+        run: node packages/design-tokens/scripts/check-doc-parity.mjs
+
+      - name: Hardcode lint (AC-39.1)
+        run: node packages/design-tokens/scripts/check-no-hardcode.mjs
+
+      - name: WCAG contrast
+        run: node docs/ux/contrast-check.mjs
+
+      - name: Bandingkan palet Tailwind v4 (acceptance T-008)
+        run: node docs/ux/compare-tailwind-v4.mjs
+
+  tokens-budget:
+    name: tokens (budget CSS, setelah next build)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web (budget:require-app gagal bila .next/static kosong)
+        run: pnpm --filter @trailgate/web build
+
+      - name: Budget CSS (require-app)
+        run: pnpm -C packages/design-tokens budget:require-app
+
+  # ─── Contracts (OpenAPI, T-006 co-owner) ────────────────────────────────────
+  contracts:
+    name: contracts (OpenAPI validate + generate + test + typecheck)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate OpenAPI
+        run: pnpm -C packages/contracts validate
+
+      - name: Generate check (drift)
+        run: pnpm -C packages/contracts generate:check
+
+      - name: Contract tests
+        run: pnpm -C packages/contracts test
+
+      - name: Typecheck
+        run: pnpm -C packages/contracts typecheck
+  # ─── Security audit ─────────────────────────────────────────────────────────
+  audit:
+    name: audit (composer + npm)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: |
+          cd apps/api && COMPOSER_ALLOW_SUPERUSER=1 composer install --no-interaction --prefer-dist
+          pnpm install --frozen-lockfile
+
+      - name: composer audit
+        working-directory: apps/api
+        env:
+          COMPOSER_ALLOW_SUPERUSER: "1"
+        run: composer audit --no-interaction
+
+      # Level disepakati (ADR-006 §5.3): gagal pada advisory 'moderate' ke atas.
+      - name: npm audit (web + pos, moderate+)
+        run: |
+          cd apps/web && pnpm audit --prod --audit-level moderate
+          cd ../pos && pnpm audit --prod --audit-level moderate
+
+      # npm audit signatures (T-008 AC): verifikasi signature/attestation registry
+      # untuk paket terpasang (root node_modules). Fail-closed — TANPA `|| true`;
+      # registry lokal/proxy tanpa signature akan gagal (di host ini: exit 0,
+      # 845 packages verified signatures, 164 verified attestations).
+      - name: npm audit signatures (attestation paket)
+        run: npm audit signatures
+        working-directory: .
+
+  # ─── Secret scan ────────────────────────────────────────────────────────────
+  # Allowlist: apps/api/.env.testing di commit f29df88 (kunci uji, kosong sejak dc58998).
+  # Nilai kunci TIDAK pernah disalin ke repo (tg-security F-8).
+  # Referensi: .github/secret-scan/ALLOWLIST.md + gitleaks.toml.
+  #
+  # gitleaks/gitleaks-action tidak memiliki `inputs:` di action.yml — `with: config-path`
+  # dan `with: args` diabaikan. Solusi: set env GITLEAKS_CONFIG + GITHUB_TOKEN pada step
+  # (Bukti: gitleaks v8.24.3 + GITLEAKS_CONFIG + GITHUB_TOKEN → exit 0 pada repo ini,
+  # leaks found: 0; synthetic dengan rahasia → exit 1, fail-closed).
+  # Action dipin ke SHA tag v2 (bukan tag bergerak); versi saat pin: v2.3.9.
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # gitleaks butuh history untuk commit-scoped allowlist
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2 (2026-11)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .github/secret-scan/gitleaks.toml
+
+      # Action menulis results.sarif (bukan glawk_report.json — F-SEC-8). Upload SARIF.
+      - name: Upload Gitleaks SARIF report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: results.sarif
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ─── security_scan (semgrep --error, selalu aktif di CI) ────────────────────
+  # Semgrep dipasang eksplisit (F-SEC-10) — bukan fail-safe yang selalu skip.
+  # Gagal bila semgrep exit non-zero; --error memastikan temuan memblokir.
+  security-scan:
+    name: security-scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep (pin eksak)
+        run: pip install semgrep==1.187.0
+
+      - name: Run Semgrep
+        id: semgrep
+        run: |
+          set -o pipefail
+          # --error: temuan (bukan hanya error mesin) menggagalkan job (F-1).
+          semgrep --config auto --json --output .github/security-scan-report.json --error apps/
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "semgrep exited $code"
+            exit "$code"
+          fi
+        shell: bash
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: .github/security-scan-report.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ─── Playwright e2e smoke ────────────────────────────────────────────────────
+  # Placeholder: tests/e2e/*.spec.ts kosong. Tes dibuat T-101/tg-qa.
+  # Job gagal → pipeline gagal (sesuai AC T-008: smoke harus pass).
+  e2e:
+    name: e2e smoke (Playwright)
+    runs-on: ubuntu-24.04
+    # Non-root: node (GHA default).
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.33.2'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: |
+          pnpm exec playwright install chromium --with-deps 2>&1 | tail -5
+
+      - name: Run Playwright
+        env:
+          E2E_BASE_URL: http://127.0.0.1:13000
+          E2E_NO_WEBSERVER: "true"
+        run: |
+          # Web harus sudah berjalan (service web di compose atau runner sendiri).
+          # CI job ini memulai web server secara opsional via playwright.config.ts.
+          pnpm exec playwright test \
+            --config=tests/e2e/playwright.config.ts \
+            --reporter=github
+
+  # ─── Tenant isolation hook (T-101) ──────────────────────────────────────────
+  # placeholder eksplisit — belum ada tes; setelah T-101 ganti step ini dengan php artisan test --filter=TenantIsolation
+  tenant-isolation:
+    name: tenant-isolation (T-101 hook)
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        # Digest pin (ADR-006 §3, F1B-5).
+        image: mysql:8.4@sha256:f0c7a4430d773ef8433aae82e08cb02ade4a6ad806a18b1610a48a1728fbdfd5
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: trailgate_testing
+          MYSQL_USER: tg_test
+          MYSQL_PASSWORD: tg_test_pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        # Digest pin (ADR-006 §3, F1B-5).
+        image: redis:7-alpine@sha256:e4ee3e03ce8f75471f40937a7c6b2b0e500390b6812fcdf5cb32c01295ded446
+        ports:
+          - 6379:6379
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: trailgate_testing
+      DB_USERNAME: tg_test
+      DB_PASSWORD: tg_test_pass
+      APP_ENV: testing
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, redis
+
+      - name: Install deps
+        working-directory: apps/api
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Tenant isolation (T-101 placeholder)
+        run: |
+          echo "placeholder eksplisit — belum ada tes; setelah T-101 ganti step ini dengan php artisan test --filter=TenantIsolation"
+          exit 0

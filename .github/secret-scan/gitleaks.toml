@@ -1,0 +1,76 @@
+# Gitleaks config — pemindai rahasia (CI + lokal, `make secret-scan`).
+# Format: gitleaks v8.
+#
+# Strategi allowlist (tg-security r2 F-SEC-6):
+#   - `[extend] useDefault = true` (F-SEC-6b): rules bawaan gitleaks (~200) TETAP AKTIF,
+#     digabung dengan rule kustom di bawah. Tanpa ini gitleaks MENGGANTI default rule
+#     dengan rule kustom — melemahkan pemindaian.
+#   - Allowlist per-rule, ter-scope SESEMPIT MUNGKIN:
+#       * commits+paths untuk riwayat kunci uji yang sudah dikosongkan.
+#       * value-scoped (regexes) untuk contoh token dokumentasi — BUKAN path-wide,
+#         sehingga rahasia riil di path sama tetap terdeteksi.
+#       * paths per-rule hanya untuk false-positive bawaan `generic-api-key` pada
+#         artefak kontrak (fixture tes, output generator, spesifikasi publik) —
+#         rule lain tetap memindai file-file itu.
+#
+# `detect` memindai working tree + history (git) secara default.
+
+title = "trailgate secret scan config"
+
+[extend]
+useDefault = true
+
+# ─── Custom rules (tambahan di atas default) ─────────────────────────────────
+[[rules]]
+id = "laravel-app-key"
+description = "Laravel APP_KEY base64 di file env/code"
+regex = '''APP_KEY\s*=\s*base64:[A-Za-z0-9+/=]{20,}'''
+keywords = ["APP_KEY"]
+# Allowlist path+commit-scoped: apps/api/.env.testing @ f29df88 (kunci uji; kosong sejak dc58998).
+[[rules.allowlists]]
+commits = ["f29df8848291c6fae3da4a756a597c4d3e51bb12"]
+paths = ['''^apps/api/\.env\.testing$''']
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS access key ID (AKIA...)"
+regex = '''AKIA[0-9A-Z]{16}'''
+
+[[rules]]
+id = "private-key-block"
+description = "PEM private key material"
+regex = '''-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----'''
+
+[[rules]]
+id = "github-token"
+description = "GitHub personal access token"
+regex = '''gh[pousr]_[A-Za-z0-9]{30,}'''
+
+[[rules]]
+id = "high-entropy-secret"
+description = "Nilai rahasia ber-entropi tinggi (password/secret/token ≥28 karakter alfanumerik)"
+# Minimal 28 char: placeholder 'local-dev-only' (17 char) dan '${VAR}' tidak tertangkap —
+# tidak ada allowlist path untuk .env.example/.env.testing/docker-compose.yml (F-SEC-6).
+regex = '''(?i)(password|passwd|secret|token|api[_-]?key)\s*[=:]\s*['"]?[A-Za-z0-9+/_\-\.]{28,}'''
+keywords = ["password", "secret", "token", "apikey"]
+# Value-scoped (BUKAN path-wide). regexTarget=match: allowlist regex diuji pada MATCH
+# penuh ('token: eyJhbGciOiJFZERTQSJ9.link-token-contoh'), bukan hanya Secret — jadi
+# contoh token dokumentasi di openapi.yaml dikecualikan, token lain di file yang sama
+# (atau rahasia riil di path itu) TETAP dilaporkan. Path .env.example/... TIDAK di-allowlist.
+[[rules.allowlists]]
+description = "contoh token dokumentasi di OpenAPI (nilai ter-scope, bukan path-wide)"
+regexTarget = "match"
+regexes = ['''eyJhbGciOiJFZERTQSJ9\.link-token-contoh''']
+
+# False-positive default rule `generic-api-key` pada artefak kontrak publik
+# (fixture tes, output generator, spesifikasi). Rule lain (termasuk
+# high-entropy-secret di atas) tetap memindai ketiga file ini.
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "artefak kontrak publik (fixture/generator/spesifikasi) — false positive default rule"
+paths = [
+  '''^packages/contracts/tests/examples\.test\.mjs$''',
+  '''^packages/contracts/src/generated/openapi\.d\.ts$''',
+  '''^packages/contracts/openapi\.yaml$''',
+]

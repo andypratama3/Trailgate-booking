@@ -72,7 +72,7 @@ services:
       sh -c "pnpm install --frozen-lockfile &&
              pnpm --filter @trailgate/web exec next dev -H 0.0.0.0 -p 3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/v1}
     volumes:
       - ./:/app
       - web_node_modules:/app/node_modules
@@ -82,7 +82,8 @@ services:
       - api
 
   mysql:
-    image: mysql:8.4
+    # Digest pin (ADR-006 §3, F1B-5): tag mungkin bergerak; digest dipakai sebelum rilis.
+    image: mysql:8.4@sha256:f0c7a4430d773ef8433aae82e08cb02ade4a6ad806a18b1610a48a1728fbdfd5
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-dev-only-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-trailgate}
@@ -100,7 +101,8 @@ services:
       start_period: 30s
 
   redis:
-    image: redis:7-alpine
+    # Digest pin (ADR-006 §3, F1B-5).
+    image: redis:7-alpine@sha256:e4ee3e03ce8f75471f40937a7c6b2b0e500390b6812fcdf5cb32c01295ded446
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:

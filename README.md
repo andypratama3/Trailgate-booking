@@ -9,7 +9,7 @@ Aturan kerja agent: [`AGENTS.md`](AGENTS.md). Papan status: [`docs/board/STATUS.
 
 | Path | Isi | Pemilik (OWNERS.md) |
 |---|---|---|
-| `apps/api` | Laravel 12 REST API `/api/v1`, queue worker, scheduler | tg-backend / tg-data / tg-domain / tg-integrations |
+| `apps/api` | Laravel 12 REST API `/v1/*` (prefix kanonik per kontrak OpenAPI, PRD §11), queue worker, scheduler | tg-backend / tg-data / tg-domain / tg-integrations |
 | `apps/web` | Next.js App Router + TypeScript — web publik + konsol | tg-web / tg-console |
 | `apps/pos` | PWA petugas pos (app Next.js terpisah) | tg-console |
 | `packages/contracts` | OpenAPI + tipe TS hasil generate (placeholder) | tg-architect |

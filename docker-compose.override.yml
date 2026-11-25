@@ -1,0 +1,28 @@
+# Override port karena host 3306/6379 sudah dipakai.
+# Jalankan: docker compose -f docker-compose.yml -f docker-compose.override.yml up -d mysql redis
+# Atau (lokal tanpa compose override): docker compose -f docker-compose.yml up -d mysql redis
+services:
+  api:
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "33061"
+      REDIS_PORT: "63791"
+    ports: []
+
+  worker:
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "33061"
+      REDIS_PORT: "63791"
+    ports: []
+
+  web:
+    ports: []
+
+  mysql:
+    ports:
+      - "127.0.0.1:33061:3306"
+
+  redis:
+    ports:
+      - "127.0.0.1:63791:6379"
