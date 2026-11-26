@@ -9,7 +9,7 @@
 |---|---|
 | Fase aktif | **P0 — Discovery & Fondasi** |
 | Gate berikutnya | **G0 Spec** (lihat §16.8 PRD) |
-| Status G0 | **BELUM** — menunggu (a) dekomposisi FR-ID + AC (T-003), (b) ADR + kontrak (T-005, T-006), (c) aturan domain bersumber (T-004), (d) **2 pilot bersedia** (manusia) |
+| Status G0 | **BELUM** — menunggu (a) T-009 sign-off Andy (kit wawancara), (b) **2 pilot bersedia**, (c) keputusan §20.2 #1-#7, (d) wawancara 5 basecamp + 3 TO (manusia). Semua tugas P0 yang bisa dikerjakan mesin sudah **done**: T-001..T-008, T-010, T-013, T-014, T-015; T-011 **done**; T-012 sedang berjalan |
 
 ## Fakta lingkungan terverifikasi (diuji, bukan diasumsikan)
 
