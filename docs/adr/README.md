@@ -17,6 +17,7 @@ Format tiap ADR: **Konteks · Keputusan · Alternatif yang ditolak · Konsekuens
 | ADR-005 | Enkripsi field identitas & dokumen (NIK/paspor, disk privat) | accepted | [`ADR-005-field-encryption.md`](ADR-005-field-encryption.md) |
 | ADR-006 | Versi paket ter-pin, gate paket tg-security, level PHPStan, pin image | accepted | [`ADR-006-package-versions.md`](ADR-006-package-versions.md) |
 | ADR-007 | Deviasi operating model saat bootstrap P0 (amandemen §16.1/§16.3/§16.5/§16.7/§16.15/§17) | accepted | [`ADR-007-governance-deviations.md`](ADR-007-governance-deviations.md) |
+| ADR-008 | Arbitrasi putaran rework >2 (§16.2 butir 7): mekanis/dokumen → Orchestrator; sengketa desain → `tg-architect`; entri ADR wajib sebelum `done` | accepted | [`ADR-008-rework-round-arbitration.md`](ADR-008-rework-round-arbitration.md) |
 
 Urutan nomor = urutan tematik, bukan urutan waktu: ADR-001..006 ditulis oleh `T-005` (w2) setelah
 ADR-007 ditulis lebih dulu saat bootstrap (T-002). Nomor tidak boleh diulang atau dirapikan lagi.
@@ -35,6 +36,6 @@ plus tabel "Pemetaan keputusan inti PRD §0".
 
 ## Status
 
-`proposed | accepted | superseded`. ADR-001..007 semuanya `accepted`. ADR baru, amendemen versi
+(`proposed | accepted | superseded`). ADR-001..008 semuanya `accepted`. ADR baru, amendemen versi
 (ADR-006), atau penggantian keputusan mengikuti aturan `OWNERS.md`: path ini milik `tg-architect`,
 dan perubahan pada path yang sudah dipetakan PRD §16.4 memerlukan ADR baru.

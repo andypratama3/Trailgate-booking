@@ -39,3 +39,6 @@ artifacts_expected:
 notes: >
   Runner GitHub tidak tersedia di lingkungan dev ini; validasi = `docker compose`/lokal menjalankan
   perintah yang sama, plus `act` bila tersedia. Laporkan apa yang BENAR-BENAR dijalankan.
+  Arbitrasi putaran ke-3 (audit P0 A-1): sah, dicatat di `docs/adr/ADR-008-rework-round-arbitration.md`
+  (putaran >2 yang hanya berisi cacat mekanis/dokumen boleh diarbitrasi Orchestrator **wajib** dengan entri ADR;
+  sengketa desain/kontrak wajib `tg-architect`; kartu `rework_round > 2` butuh entri ADR sebelum `done`).
