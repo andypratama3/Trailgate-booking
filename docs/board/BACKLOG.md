@@ -21,7 +21,7 @@ Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + re
 | T-008 | CI: pint, phpstan, tes, tsc, lint, Playwright smoke, `composer/npm audit`, secret scan, `security_scan` | — | tg-devops | tg-security | tg-reviewer | tg-qa | T-001 | M | done |
 | T-009 | Skrip wawancara + lembar validasi pilot (5 basecamp, 3 TO) | FR-35 | tg-analyst | tg-domain | Andy | tg-auditor | — | S | in_review |
 | T-010 | Setup Tailwind v4 CSS-first + pipeline token + budget ukuran CSS di CI | FR-39 | tg-ux (token) + tg-devops (pipeline) | tg-web | tg-reviewer | tg-qa | T-001 | M | done |
-| T-011 | `packages/ui` milik sendiri: komponen dasar + katalog + axe + state loading/empty/error | FR-39 | tg-ux | tg-web | tg-console | tg-qa | T-010 | L | todo |
+| T-011 | `packages/ui` milik sendiri: komponen dasar + katalog + axe + state loading/empty/error | FR-39 | tg-ux | tg-web | tg-console | tg-qa | T-010 | L | done |
 | T-012 | Tema tenant runtime + validator kontras WCAG AA + mode gelap | FR-39,02 | tg-web | tg-ux | tg-security | tg-qa | T-011 | M | todo |
 | T-013 | Gate paket CLI `@alibaba-group/open-code-review` (ocr) untuk seat tg-ocr (AGENTS.md #10) | — | tg-security | tg-architect | tg-devops | tg-auditor | — | S | done |
 | T-014 | Manifest PWA POS — hilangkan hex hardcode atau pengecualian terdokumentasi | FR-39,16 | tg-console | tg-web | tg-reviewer | tg-qa | T-010 | S | done |

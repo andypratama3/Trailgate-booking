@@ -5,6 +5,8 @@
 @import "tailwindcss";                                          /* 1. default Tailwind v4 */
 @import "../../../packages/design-tokens/css/tokens.css"; /* 2. nilai runtime (terang+gelap) */
 @import "../../../packages/design-tokens/css/theme.css";  /* 3. pemetaan @theme + @utility + keyframes */
+/* 4. sumber tambahan: komponen packages/ui (di luar root pemindaian apps/web). */
+@source "../../../packages/ui/src";
 
 :root {
   color-scheme: light;

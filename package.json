@@ -5,7 +5,11 @@
   "description": "TrailGate monorepo — booking jalur pendakian berbasis kuota.",
   "packageManager": "pnpm@10.33.2",
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">= 22.12.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.1",
+    "@playwright/test": "1.65.1"
   },
   "scripts": {
     "dev": "pnpm --filter @trailgate/web dev",

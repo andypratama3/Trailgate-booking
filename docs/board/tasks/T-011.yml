@@ -9,8 +9,8 @@ reviewers: [tg-web, tg-console]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-010]
-status: todo
-rework_round: 0
+status: done
+rework_round: 1
 branch: agent/tg-ux/T-011
 acceptance:
   - "Komponen (salinan shadcn/ui yang DIMILIKI sendiri, bukan dependensi tertutup): Button, Input, Select, Dialog, Sheet, Tabs, Toast, DataTable, Calendar kuota, StatusBadge jalur, QuotaMeter, Stepper booking"
