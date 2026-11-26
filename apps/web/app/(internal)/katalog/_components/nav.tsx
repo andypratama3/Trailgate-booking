@@ -17,6 +17,7 @@ const LINKS: ReadonlyArray<readonly [string, string]> = [
   ["/katalog/status-badge", "StatusBadge"],
   ["/katalog/quota-meter", "QuotaMeter"],
   ["/katalog/stepper", "Stepper"],
+  ["/katalog/tenant-theme", "Tema tenant"],
 ];
 
 function ThemeToggle() {

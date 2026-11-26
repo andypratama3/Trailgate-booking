@@ -9,8 +9,8 @@ reviewers: [tg-ux, tg-security]
 verifier: tg-qa
 auditor: tg-auditor
 depends_on: [T-011]
-status: todo
-rework_round: 0
+status: done
+rework_round: 1
 branch: agent/tg-web/T-012
 acceptance:
   - "Warna merek tenant di-inject sebagai CSS variables saat runtime (tanpa rebuild)"
