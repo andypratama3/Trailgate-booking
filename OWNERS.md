@@ -40,7 +40,7 @@ apps/api/tests/**                                                              t
 apps/api/config/**  apps/api/bootstrap/**  apps/api/*.json  apps/api/*.xml     tg-devops
 apps/web/**            (sisa setelah (public)/** dan (console)/**)             tg-web
 docker-compose*.yml, Makefile, *.mk, .gitignore, .dockerignore, README.md, .env.example, .env.testing  (root)  tg-devops
-package.json, pnpm-workspace.yaml, pnpm-lock.yaml, tsconfig*.json                     (root)  tg-devops
+package.json, pnpm-workspace.yaml, pnpm-lock.yaml, tsconfig*.json, skills-lock.json               (root)  tg-devops
 apps/api/**  (sisa setelah baris di atas: artisan, vite.config.js, composer.lock,        tg-devops
               resources/**, public/**, dotfiles; BUKAN app/Domain|Integrations, database/**, config/**)
 .omp/**  AGENTS.md  OWNERS.md                                                  orchestrator
