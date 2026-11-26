@@ -199,6 +199,29 @@ dan tambahkan ke `ci:`.
   memuat penanda itu, jadi tidak muncul sebagai temuan.
   Nilai sengaja tidak diturunkan dari `tokens.json` saat build: menambah generator +
   gerbang drift untuk 2 nilai statis yang juga dikonsumsi OS tanpa CSS.
+- **`apps/pos/public/icon.svg` (owner: tg-console) — TERDOKUMENTASI, UTANG (T-014 F-4/F-5 / A-7, 2026-11-26)**:
+  ikon PWA membawa literal warna yang sama dengan manifest POS — `#0f766e` = `--tg-primary`
+  (teal-700) pada `rect/@fill`, `#ffffff` (permukaan terang) pada `path/@fill`. Duplikasi nilai
+  `--tg-primary` karenanya ada di **3 tempat**: `tokens.json`/`css/*.css` (sumber), `manifest.ts`,
+  dan `icon.svg` — yang terakhir **tanpa gerbang drift**.
+  **Di luar cakupan lint, dua sebab sekaligus** (`packages/design-tokens/scripts/check-no-hardcode.mjs`):
+  1. `EXT` = `tsx|jsx|ts|js|css|vue|html` — tidak memuat `svg`;
+  2. default roots = `apps/web/app apps/pos/app packages/ui` — `apps/pos/public` tidak dipindai
+     sama sekali, jadi memperluas `EXT` saja **tidak cukup**.
+  Terukur 2026-11-26 (uji sementara di luar repo, `/tmp`, sudah dihapus): pada akar yang sama,
+  berkas `.ts` berisi `#0f766e` dilaporkan (`check-no-hardcode GAGAL: 1 hardcode`, exit 1)
+  sedangkan `.svg` dengan hex identik lolos diam-diam — bukti butir 1. Lint repo sendiri tetap
+  `exit 0`, 3 akar, 2 baris `allow` (`manifest.ts:14–15`).
+  **Keputusan: opsi (a) dokumentasi** (bukan perluasan lint sekarang). Alasan: `icon.svg` milik
+  tg-console dan berada di luar path tulis tg-ux, sedangkan perluasan `EXT`+roots menyentuh
+  `packages/design-tokens/scripts/**` **dan** menuntut penanda `allow` di `apps/pos/**` — dua
+  serah-terima untuk nilai statis 2 baris. Utang dicatat di sini agar tidak diam-diam.
+  **Rekomendasi upgrade (dikerjakan tg-console/tg-devops, bukan di sini):**
+  1. `EXT` → tambahkan `svg`; default roots → tambahkan `apps/pos/public`;
+  2. beri `tg-token-lint:allow` + komentar alasan pada **kedua** baris `fill` di `icon.svg`
+     (warna ikon dibaca renderer/OS tanpa CSS variable — pola sama dengan `manifest.ts` di atas);
+  3. bukti penerimaan: berkas `.svg` berhex di luar repo (`/tmp`) membuat lint gagal setelah
+     perluasan, dan `icon.svg` lolos hanya karena penanda `allow`.
 - (Dilaporkan di BuildReport; bukan block T-010.)
 
 ## 9. Status AC
