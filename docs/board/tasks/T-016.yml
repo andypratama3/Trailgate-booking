@@ -16,7 +16,7 @@ acceptance:
   - "Job `e2e` di `.github/workflows/ci.yml` menjalankan audit aksesibilitas: bangun `apps/web`, jalankan server produksi, lalu `node packages/ui/scripts/axe-katalog.mjs --base <url>` — gagal bila ada pelanggaran serious/critical atau halaman HTTP ≥400."
   - "Chromium disediakan job (`playwright install chromium --with-deps` sudah ada di job `e2e`) sehingga audit reproducible di CI, bukan hanya lokal."
   - "Target Makefile (`make axe` atau perluasan `e2e`) menjalankan hal yang sama secara lokal; sebut di `docs/ux/token-pipeline.md` §7 atau README."
-  - "Bukti nyata: jalankan lokal sekali lewat target Makefile dan tempel output (`13 halaman, 0 violations, exit 0`); runner GHA tetap `unverified` di mesin ini (sebut eksplisit)."
+  - "Bukti nyata: jalankan lokal sekali lewat target Makefile dan tempel output (jumlah halaman = jumlah direktori katalog berisi `page.tsx`; saat ini 14 halaman termasuk `/katalog/tenant-theme` — bukan angka tetap); runner GHA tetap `unverified` di mesin ini (sebut eksplisit)."
 artifacts_expected:
   - .github/workflows/ci.yml (job e2e)
   - Makefile (target audit aksesibilitas)
@@ -29,3 +29,7 @@ notes: >
   (server itu tidak dinyalakan siapa pun). Saat ini tertutup karena `tests/e2e/` belum punya spec. Akan
   menggagalkan job begitu spec T-101 mendarat → perbaiki urutan/port saat itu: satu server dipakai bersama
   (mis. axe & Playwright di step yang sama, atau Playwright diarahkan ke :3000). Owner tg-devops/tg-qa.
+  F-2 (tg-reviewer, P3) — diuji Orchestrator: setelah `make axe`, port 3100 BEBAS dan tidak ada proses
+  mendengarkan 3000/3100 (dua sisa proses `next-server` di host tidak memegang port dan salah satunya
+  sudah ada sebelum run). Jadi risiko "server orfan/stale build" tidak terulang pada jalur normal; pertahankan
+  sebagai utang P3 (kill process group + guard EADDRINUSE + `cat /tmp/axe-web.log` saat gagal) bila ingat.
