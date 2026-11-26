@@ -1,0 +1,26 @@
+id: T-016
+title: Wiring audit axe katalog ke CI (job e2e) + spec aksesibilitas yang dipertahankan
+fr: [FR-39]
+epic: P0
+phase: P0
+owner: tg-devops
+co_owner: [tg-qa, tg-ux]
+reviewers: [tg-reviewer, tg-ux]
+verifier: tg-qa
+auditor: tg-auditor
+depends_on: [T-008, T-011]
+status: todo
+rework_round: 0
+branch: agent/tg-devops/T-016
+acceptance:
+  - "Job `e2e` di `.github/workflows/ci.yml` menjalankan audit aksesibilitas: bangun `apps/web`, jalankan server produksi, lalu `node packages/ui/scripts/axe-katalog.mjs --base <url>` — gagal bila ada pelanggaran serious/critical atau halaman HTTP ≥400."
+  - "Chromium disediakan job (`playwright install chromium --with-deps` sudah ada di job `e2e`) sehingga audit reproducible di CI, bukan hanya lokal."
+  - "Target Makefile (`make axe` atau perluasan `e2e`) menjalankan hal yang sama secara lokal; sebut di `docs/ux/token-pipeline.md` §7 atau README."
+  - "Bukti nyata: jalankan lokal sekali lewat target Makefile dan tempel output (`13 halaman, 0 violations, exit 0`); runner GHA tetap `unverified` di mesin ini (sebut eksplisit)."
+artifacts_expected:
+  - .github/workflows/ci.yml (job e2e)
+  - Makefile (target audit aksesibilitas)
+notes: >
+  Latar: `packages/ui/scripts/axe-katalog.mjs` (T-011) sudah fail-closed (serious/critical + HTTP ≥400) dan
+  terbukti lulus 13/13 halaman di lokal, tetapi belum ada pemanggil di CI — regresi aksesibilitas tidak akan
+  tertangkap otomatis. `tests/e2e/**` = path tg-qa (co_owner), `.github/**` + Makefile = tg-devops.
