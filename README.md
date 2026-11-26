@@ -106,9 +106,31 @@ Catatan tes: `APP_KEY` untuk testing dibuat acak per proses oleh `apps/api/boots
 jadi `apps/api/.env.testing` tetap `APP_KEY=` kosong dan tidak ada rahasia ter-commit (AGENTS.md #11).
 Di sesi root: `COMPOSER_ALLOW_SUPERUSER=1 composer test`.
 
+## Perintah CI (Makefile)
+
+Setara `.github/workflows/ci.yml` (job yang sama, urutan sama):
+
+```bash
+make ci            # semua job: compose-validate, tokens*, pint, phpstan, test,
+                   # typecheck, lint-web, audit, contracts, secret-scan,
+                   # security-scan, axe, e2e, tenant-isolation
+make axe           # audit aksesibilitas katalog (T-016)
+make e2e           # Playwright smoke (0 spec → SKIP-FAIL-SAFE)
+```
+
+`make axe` (co-owner tg-qa/tg-ux, skrip `packages/ui/scripts/axe-katalog.mjs`):
+
+- Build web produksi (`pnpm --filter @trailgate/web build`), jalankan `next start`
+  di <http://127.0.0.1:3100> (default `AXE_PORT=3100`; port 3000 dipakai web dev),
+  tunggu HTTP 200, lalu jalankan axe.
+- Fail-closed: exit 1 bila ada temuan serious/critical **atau** halaman merespons
+  HTTP ≥400; exit 2 bila prasyarat gate belum siap (mis. direktori katalog kosong).
+- Server dimatikan otomatis saat target selesai (trap).
+- Butuh Chromium Playwright (`pnpm exec playwright install chromium` bila belum ada).
+
 ## Belum ada di scaffold T-001
 
-- CI (`.github/workflows`): pint, phpstan, tes, tsc/lint, Playwright smoke, audit, secret scan —
-  di luar acceptance T-001, menyusul sebagai task tg-devops berikutnya.
+- CI (`.github/workflows`): pint, phpstan, tes, tsc/lint, Playwright smoke, axe katalog, audit,
+  secret scan — dipasang T-008 dan lanjutan (lihat "Perintah CI (Makefile)").
 - ESLint/Prettier: ditunda sampai ada source produk (`next build` tidak memerlukan lint).
 - `infra/` masih berupa `infra/README.md` (cakupan Nginx/PHP-FPM, storage S3-compatible, deploy); implementasinya menyusul.

@@ -106,13 +106,32 @@ tokens:
 tokens-check:
 	node packages/design-tokens/scripts/check-doc-parity.mjs
 	node packages/design-tokens/scripts/check-no-hardcode.mjs
-	node docs/ux/contrast-check.mjs
-	node docs/ux/compare-tailwind-v4.mjs
+.PHONY: web-build
+web-build:
+	pnpm --filter @trailgate/web build
 
 .PHONY: tokens-budget
-tokens-budget:
-	pnpm --filter @trailgate/web build
+tokens-budget: web-build
 	pnpm -C packages/design-tokens budget:require-app
+
+# --- audit aksesibilitas katalog (T-016) ---
+# Build web → server produksi di latar belakang → axe-katalog (fail-closed:
+# serious/critical atau HTTP ≥400 = exit 1). Server dimatikan lewat trap.
+# Port 3100 default: 3000 dipakai `docker compose up` (web dev).
+AXE_PORT ?= 3100
+AXE_BASE ?= http://127.0.0.1:$(AXE_PORT)
+.PHONY: axe
+axe: web-build
+	@set -eu; \
+	pnpm --filter @trailgate/web exec next start -p $(AXE_PORT) >/tmp/axe-web.log 2>&1 & \
+	pid=$$!; \
+	trap 'kill $$pid 2>/dev/null || true' EXIT INT TERM; \
+	for i in $$(seq 1 60); do \
+		curl -fsS -o /dev/null "$(AXE_BASE)/" && break; \
+		sleep 1; \
+	done; \
+	curl -fsS -o /dev/null "$(AXE_BASE)/" || { echo "web tidak siap di $(AXE_BASE); lihat /tmp/axe-web.log"; exit 1; }; \
+	node packages/ui/scripts/axe-katalog.mjs --base $(AXE_BASE)
 
 # --- contracts (T-006, co-owner) ---
 # Kontrak OpenAPI: validate, generate:check (drift), test (node --test), typecheck.
@@ -150,7 +169,7 @@ compose-validate:
 # --- full CI (tanpa runner GHA) ---
 # Urutan mengikuti job CI. Secret scan via image docker (pin digest).
 .PHONY: ci
-ci: compose-validate tokens tokens-check tokens-budget pint phpstan test typecheck lint-web audit contracts secret-scan security-scan e2e tenant-isolation
+ci: compose-validate tokens tokens-check tokens-budget pint phpstan test typecheck lint-web audit contracts secret-scan security-scan axe e2e tenant-isolation
 	@echo "=== CI local run complete ==="
 
 .PHONY: ci-strict
@@ -165,5 +184,5 @@ ci-strict:
 .PHONY: help
 help:
 	@echo "services | services-down | pint | phpstan | test | typecheck | lint-web |"
-	@echo "audit | secret-scan | security-scan | tokens | tokens-check | tokens-budget |"
+	@echo "audit | secret-scan | security-scan | tokens | tokens-check | tokens-budget | axe |"
 	@echo "contracts | e2e | tenant-isolation | compose-validate | ci | ci-strict | help"

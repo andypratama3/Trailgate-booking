@@ -459,6 +459,25 @@ jobs:
         run: |
           pnpm exec playwright install chromium --with-deps 2>&1 | tail -5
 
+      - name: Build web
+        run: pnpm --filter @trailgate/web build
+
+      # T-016: audit aksesibilitas katalog (fail-closed — serious/critical atau
+      # halaman HTTP ≥400 = exit 1). Server produksi dimatikan via trap EXIT.
+      - name: Audit aksesibilitas katalog (axe)
+        run: |
+          set -eu
+          pnpm --filter @trailgate/web exec next start -p 3000 >/tmp/axe-web.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT INT TERM
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null http://127.0.0.1:3000/ && break
+            sleep 1
+          done
+          curl -fsS -o /dev/null http://127.0.0.1:3000/ || { echo "web tidak siap; lihat /tmp/axe-web.log"; exit 1; }
+          node packages/ui/scripts/axe-katalog.mjs --base http://127.0.0.1:3000
+
+
       - name: Run Playwright
         env:
           E2E_BASE_URL: http://127.0.0.1:13000
