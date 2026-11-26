@@ -355,20 +355,30 @@ Setiap animasi transisi **wajib** dibungkus media query `prefers-reduced-motion`
 
 ## 7. Kontrak injeksi tema tenant (FR-02 / AC-02.1)
 
-Variabel yang boleh di-override tenant lewat `style` pada `<html>` saat runtime:
+Variabel kontrak yang boleh di-override tenant saat runtime (`--tg-brand-fg` dihasilkan platform,
+hanya baca, lihat aturan 1–2):
 
 ```
---tg-brand, --tg-brand-fg, --tg-brand-subtle
+--tg-brand, --tg-brand-subtle, --tg-brand-subtle-fg   (ditentukan tenant)
+--tg-brand-fg                                         (dihasilkan platform, hanya baca)
 ```
 
 Aturan:
 
-1. Tenant HANYA boleh mengubah `--tg-brand`, `--tg-brand-fg`, `--tg-brand-subtle`,
-   `--tg-brand-subtle-fg`; sisanya tetap milik platform. Nilai bukan format warna ditolak (T-012).
+1. Tenant HANYA boleh mengubah `--tg-brand`, `--tg-brand-subtle`, `--tg-brand-subtle-fg`;
+   `--tg-brand-fg` **dihasilkan platform** (hanya baca bagi tenant, tidak ditentukan tenant) —
+   selaras §1.5. Sisa variabel di luar daftar tetap milik platform. Nilai bukan format warna
+   ditolak (T-012).
 2. `--tg-brand-fg` **diturunkan platform** (hanya `#FFFFFF`/`#000000`) sebelum validasi; validator
    menguji pasangan `(brand, brand-fg turunan)`. Bila gagal → **422**, merek **tidak disimpan**, dan
    **warna merek tidak diubah** (tidak ada auto-adjust) — §1.5.
-3. Injeksi tidak memerlukan deploy ulang (AC-02.1): server merender `<html style="--tg-brand: ...">`.
+3. Injeksi tidak memerlukan deploy ulang (AC-02.1) dan **tidak memakai inline style pada `<html>`**
+   (keputusan keamanan T-012; lih. `apps/web/lib/tenant-theme.mjs`). Mekanisme runtime: elemen
+   `<style data-tg-tenant-theme>` diisi lewat `textContent` (bukan `innerHTML`), ber-scope `:root{}`
+   untuk tema terang + `[data-theme="dark"]{}` untuk tema gelap. Bila jalur SSR tetap diinginkan,
+   syaratnya sama: TIDAK ada inline style pada `<html>`; teks CSS dibangun dari whitelist nama
+   variabel + nilai warna ternormalisasi `#RRGGBB` dari validator (§1.5), bukan string bebas, dan
+   diverifikasi ulang sebelum dipakai.
 4. Tema gelap tetap menang atas merek untuk peran non-brand; merek versi gelap diturunkan dari
    primitif ramp yang sama dan divalidasi ulang untuk pasangan gelap.
 
