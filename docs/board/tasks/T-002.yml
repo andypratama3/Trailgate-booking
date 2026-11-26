@@ -9,8 +9,8 @@ reviewers: [tg-architect, tg-reviewer]
 verifier: tg-auditor
 auditor: tg-auditor
 depends_on: []
-status: in_review
-rework_round: 1
+status: done
+rework_round: 2
 branch: master
 deviation:
   prd_dep: T-001

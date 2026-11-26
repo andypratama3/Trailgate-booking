@@ -12,7 +12,7 @@ Ukuran: S ≤ 0,5 hari · M ≈ 1–2 hari · L ≈ 3–5 hari (kerja agent + re
 | ID | Tugas | FR | Owner | R1 | R2 | V | Dep | Uk | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | T-001 | Scaffold monorepo (api/web/pos/contracts), Docker compose dev, AGENTS.md, OWNERS.md | — | tg-devops | tg-architect | tg-security | tg-qa | — | M | done |
-| T-002 | Roster agent `.omp/agents`, papan `docs/board`, skema yield, konfigurasi model | — | Orchestrator | tg-architect | tg-reviewer | tg-auditor | T-001 *(dibalik — lihat `deviation` di T-002.yml)* | M | in_review |
+| T-002 | Roster agent `.omp/agents`, papan `docs/board`, skema yield, konfigurasi model | — | Orchestrator | tg-architect | tg-reviewer | tg-auditor | T-001 *(dibalik — lihat `deviation` di T-002.yml)* | M | done |
 | T-003 | Pecah PRD jadi FR-ID + AC terukur + user story | semua | tg-analyst | tg-architect | tg-domain | tg-auditor | — | M | done |
 | T-004 | Skema Mountain Pack + validator sumber + 4 pack referensi demo (Gede-Pangrango, Rinjani, Semeru, Arjuno-Welirang) berlabel DEMO | FR-37 | tg-domain | tg-analyst | tg-architect | tg-auditor | T-003 | L | done |
 | T-005 | ADR: tenancy, BYO Midtrans, kuota, offline POS, enkripsi field, versi paket | — | tg-architect | tg-security | tg-data | tg-auditor | T-003 | M | done |
