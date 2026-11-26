@@ -24,3 +24,8 @@ notes: >
   Latar: `packages/ui/scripts/axe-katalog.mjs` (T-011) sudah fail-closed (serious/critical + HTTP ≥400) dan
   terbukti lulus 13/13 halaman di lokal, tetapi belum ada pemanggil di CI — regresi aksesibilitas tidak akan
   tertangkap otomatis. `tests/e2e/**` = path tg-qa (co_owner), `.github/**` + Makefile = tg-devops.
+  Latent F-4 (tg-ux review): step axe menjalankan `next start -p 3000` lalu mematikannya via trap, sementara
+  step Playwright berikutnya di job `e2e` memakai `E2E_NO_WEBSERVER=true` + target `http://127.0.0.1:13000`
+  (server itu tidak dinyalakan siapa pun). Saat ini tertutup karena `tests/e2e/` belum punya spec. Akan
+  menggagalkan job begitu spec T-101 mendarat → perbaiki urutan/port saat itu: satu server dipakai bersama
+  (mis. axe & Playwright di step yang sama, atau Playwright diarahkan ke :3000). Owner tg-devops/tg-qa.
