@@ -24,16 +24,17 @@
 
 ## Rencana gelombang P0 (path berbeda → boleh paralel)
 
-| Gelombang | Tugas | Path | Alasan urutan |
-|---|---|---|---|
-| W0 (Orchestrator) | T-002 (roster, papan, skema yield) | `.omp/agents/**`, `docs/board/**`, `AGENTS.md`, `OWNERS.md` | prasyarat semua |
-| W1 | T-001 (scaffold), T-003 (FR/AC), T-009 (kit wawancara) | `apps/**`+`docker/**`+`.github/**` · `docs/requirements/fr/**` · `docs/requirements/interviews/**` | tanpa dependensi, path terpisah |
-| W2 | T-004 (Mountain Pack), T-005 (ADR), T-007 (UX/wireframe), T-008 (CI) | `docs/domain/**`+`seeders/packs/**` · `docs/adr/**` · `docs/ux/**` · `.github/**` | T-004/T-005/T-007 dep T-003; T-008 dep T-001 |
-| W3 | T-006 (OpenAPI+tipe), T-010 (token pipeline) | `packages/contracts/**` · `packages/design-tokens/**` | T-006 dep T-005; T-010 dep T-001 |
-| W4 | T-011 (packages/ui), T-012 (tema tenant) | `packages/ui/**` · `apps/web/**` | T-011 dep T-010; T-012 dep T-011 |
+| Gelombang | Tugas | Status (2026-11-27) |
+|---|---|---|
+| W0 (Orchestrator) | T-002 (roster, papan, skema yield) | **done** (verify pass; D-1..D-5 ditutup) |
+| W1 | T-001 (scaffold), T-003 (FR/AC), T-009 (kit wawancara) | T-001 **done**; T-003 **done**; T-009 **agent-side done, menunggu sign-off Andy** |
+| W2 | T-004 (Mountain Pack), T-005 (ADR), T-007 (UX), T-008 (CI) | **done** (T-008 3 putaran rework, O-15/ADR-008; actionlint 0 error, 14 job) |
+| W3 | T-006 (OpenAPI+tipe), T-010 (token pipeline) | **done** (T-006 2 putaran; T-010 1 putaran, N-1 diputus opsi b) |
+| W4 | T-011 (packages/ui), T-012 (tema tenant) | T-011 **done** (AC-39.2 tertutup dengan bukti browser); T-012 **rework r1 berjalan** (2 P1 dari tg-ux: ambang non-teks & latar per tema) |
+| Tambahan | T-013/T-015 (gate paket ocr + axe), T-014 (manifest POS), T-016 (axe di CI) | **done** |
 
-Catatan: **W2 dan W3 bisa tumpang tindih** karena path-nya berbeda; gelombang di atas hanya urutan
-dependensi, bukan larangan paralel.
+Catatan: gelombang = urutan dependensi, bukan larangan paralel (path berbeda). Sisa P0 bukan pekerjaan mesin:
+sign-off T-009 + keputusan §20.2 (lihat bagian berikut).
 
 ## Perlu keputusan manusia (menghambat G0)
 
